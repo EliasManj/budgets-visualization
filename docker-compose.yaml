@@ -1,0 +1,12 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:12-alpine
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=transactions
+    ports:
+      - "5432:5432"  # Map host port 5432 to container port 5432 for PostgreSQL
+    volumes:
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql # Mount schema.sql to container

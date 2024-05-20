@@ -1,0 +1,11 @@
+# install into venv with pip install -r requirements.txt
+
+pandas
+openpyxl
+pyyaml
+psycopg2-binary
+sqlalchemy
+matplotlib
+hvplot
+jupyterlab
+pdfminer.six
