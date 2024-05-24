@@ -183,6 +183,8 @@ title_data_p = pn.pane.Markdown("## Monthly Transaction Summary")
 title_tag_pipeline = pn.pane.Markdown("## Transactions Grouped by Tag")
 budget_title = pn.pane.Markdown(f"## Budget: ${total_budget_per_month:,.2f}")
 
+image_path = "/home/emanjarrez/code/python/budgets-visualization/img/image.png"
+
 layout = pn.GridSpec(sizing_mode='stretch_both')
 layout[0:2, 0] = pn.Column(title_data_p, update_pipeline)
 layout[0, 1] = pn.Column(title_tag_pipeline, update_tag_pipeline, styles=custom_style_tables)
@@ -196,12 +198,16 @@ template = pn.template.FastListTemplate(
     title='Spending Dashboard',
     sidebar=[
         pn.pane.Markdown("# Transactions of 2024"),
-        pn.pane.Markdown("### Some description"),
+        pn.pane.Markdown("### “You’ve learned the lessons well. You first learned to live on less than you earn. Next you learned to seek advice from those who are competent. Lastly, you’ve learned to make gold work for you.”"),
+        pn.pane.PNG(image_path, width=300),
         pn.pane.Markdown("## Settings"),
+        pn.pane.Markdown("### Filter by Month"),
         month_slider,
         pn.Spacer(height=20),
+        pn.pane.Markdown("### Filer by Tags"),
         tag_check_box,
         pn.Spacer(height=20),
+        pn.pane.Markdown("### Sort by"),
         sort_column_selector,
         sort_order_selector
     ],

@@ -6,6 +6,7 @@ cd /home/emanjarrez/code/python/budgets-visualization
 # Parse arguments
 UPDATE=false
 RESET=false
+ACCUMULATE=fasle
 for arg in "$@"
 do
     case $arg in
@@ -16,6 +17,10 @@ do
         -r|--reset)
         RESET=true
         shift # Remove --reset from processing
+        ;;
+        -a|--acc)
+        ACCUMULATE=true
+        shift # Remove --acc from processing
         ;;
     esac
 done
@@ -47,8 +52,10 @@ fi
 YEAR=$(date +%Y)
 MONTH=$(date +%m)
 
-# Run the accumulate_budget.py script with the current year and month
-python accumulate_budget.py --year "$YEAR" --month "$MONTH"
+if [ "$ACCUMULATE" = true ] ; then
+    # Run the accumulate_budget.py script with the current year and month
+    python accumulate_budget.py --year "$YEAR" --month "$MONTH"
+fi
 
 # Convert the Jupyter notebook to a Python script and execute it
 #jupyter nbconvert --to script Visualize.ipynb
