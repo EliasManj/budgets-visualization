@@ -5,6 +5,8 @@ Interactive Finance Dashboard project for personal use, developed using Python, 
 * Parses .csv and excel files from bank transaction history
 * Filter exprenses by month and by custom tags
 
+![Dashboard Video](img/recording.gif)
+
 Define custom budgets in `budgets.yaml`
 
 
@@ -46,6 +48,4 @@ productivity:
   - copilot
   - udemy
 ```
-
-![Dashboard Video](img/recording.gif)
 
