@@ -105,9 +105,10 @@ def open_budget_defs():
     with open(file_path, 'r') as file:
         yaml_data = yaml.safe_load(file)
     # Extract the 'budgets' dictionary and convert it into a list of tuples
-    budget_items = list(yaml_data['budgets'].items())
+    budget_items = yaml_data['budgets']
     # Create a DataFrame
-    budget_df = pd.DataFrame(budget_items, columns=['tag', 'budget'])
+    budget_df = pd.DataFrame(budget_items)
+    print(budget_df)
     return budget_df
 
 def accumulate_transactions(transactions, accumulations):

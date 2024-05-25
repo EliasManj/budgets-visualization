@@ -12,12 +12,19 @@ Define custom budgets in `budgets.yaml`
 
 ```
 budgets:
-  Food: 500
-  Entertainment: 500
-  Gas: 500
-  Shopping: 500
-  Gym: 500
-  Productivity: 500
+budgets:
+  - tag: Food
+    category: Expense
+    amount: 100
+  - tag: Gas
+    category: Expense
+    amount: 100
+  - tag: Shopping
+    category: Expense
+    amount: 100
+  - tag: Home
+    category: Expense
+    amount: 100
 ```
 
 
