@@ -4,8 +4,7 @@ from datetime import datetime
 import yaml
 import os
 import re
-
-
+import sqlite3
 
 def load_keywords():
     with open('keywords.yaml', 'r') as file:
@@ -33,17 +32,10 @@ pd.set_option('display.max_columns', None)
 data_dir = "./data/bbva_debit"
 files = [f for f in os.listdir(data_dir) if f.endswith('.xlsx')]
 
-# Database connection parameters
-params = {
-    "dbname": "transactions",
-    "user": "root",
-    "password": "secret",
-    "host": "localhost",
-    "port": "5432"
-}
-
-# Connect to your PostgreSQL database
-conn = psycopg2.connect(dbname=params['dbname'], user=params['user'], password=params['password'], host=params['host'], port=params['port'])
+print("Connecting to SQLite database...")
+# Connect to SQLite database
+conn = sqlite3.connect('db/database.db')
+print("Connection successful.")
 cursor = conn.cursor()
 
 # load keywords
@@ -67,13 +59,13 @@ for file in files:
     for index, row in abonos_df.iterrows():
         fecha = row['date'].date()
         importe = row['amount']
-        cursor.execute("SELECT COUNT(*) FROM imports WHERE date = %s AND amount = %s", (fecha, importe))
+        cursor.execute("SELECT COUNT(*) FROM imports WHERE date = ? AND amount = ?", (fecha, importe))
         count = cursor.fetchone()[0]
         if count == 0 and importe > 0.0:
             # Insert row into PostgreSQL database
             cursor.execute("""
             INSERT INTO imports (date, amount) 
-            VALUES (%s, %s) 
+            VALUES (?, ?) 
             ON CONFLICT (date, amount) 
             DO NOTHING;
             """, (fecha, importe))
@@ -88,26 +80,26 @@ for file in files:
         tag = row['TAG']
         if tag.lower() != 'cetes':
             # Check if a record with the same composite primary key exists
-            cursor.execute("SELECT COUNT(*) FROM transactions WHERE date = %s AND description = %s AND amount = %s", (fecha, descripcion, importe))
+            cursor.execute("SELECT COUNT(*) FROM transactions WHERE date = ? AND description = ? AND amount = ?", (fecha, descripcion, importe))
             count = cursor.fetchone()[0]
             if count == 0 and importe > 0.0:
                 # Insert row into PostgreSQL database
                 cursor.execute("""
                 INSERT INTO transactions (date, description, amount, tag, card) 
-                VALUES (%s, %s, %s, %s, 'bbva_debit') 
+                VALUES (?, ?, ?, ?, 'bbva_debit') 
                 ON CONFLICT (date, description, amount) 
                 DO NOTHING;
                 """, (fecha, descripcion, importe, tag))
                 conn.commit()  # Commit the transaction
                 print("Row inserted successfully!")
         else:
-            cursor.execute("SELECT COUNT(*) FROM cetes WHERE date = %s AND amount = %s", (fecha, importe))
+            cursor.execute("SELECT COUNT(*) FROM cetes WHERE date = ? AND amount = ?", (fecha, importe))
             count = cursor.fetchone()[0]
             if count == 0 and importe > 0.0:
                 # Insert row into PostgreSQL database
                 cursor.execute("""
                 INSERT INTO cetes (date, amount) 
-                VALUES (%s, %s) 
+                VALUES (?, ?) 
                 ON CONFLICT (date, amount) 
                 DO NOTHING;
                 """, (fecha, importe))

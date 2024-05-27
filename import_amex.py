@@ -1,6 +1,6 @@
 import os
 import csv
-import psycopg2
+import sqlite3
 from datetime import datetime
 import re
 import yaml
@@ -17,15 +17,9 @@ def infer_tag(description: str) -> str:
             return category.capitalize()
     return "Other"
 
-print("Connecting to PostgreSQL database...")
-# Connect to PostgreSQL database
-conn = psycopg2.connect(
-    dbname="transactions",
-    user="root",
-    password="secret",
-    host="localhost",
-    port="5432"
-)
+print("Connecting to SQLite database...")
+# Connect to SQLite database
+conn = sqlite3.connect('db/database.db')
 print("Connection successful.")
 
 # Create a cursor object to execute SQL queries
@@ -49,14 +43,14 @@ for csv_file in csv_files:
             tag = infer_tag(descripcion)
             
             # Check if a record with the same composite primary key exists
-            cursor.execute("SELECT COUNT(*) FROM transactions WHERE date = %s AND description = %s AND amount = %s", (fecha, descripcion, importe))
+            cursor.execute("SELECT COUNT(*) FROM transactions WHERE date = ? AND description = ? AND amount = ?", (fecha, descripcion, importe))
             count = cursor.fetchone()[0]
             
             if count == 0 and importe > 0.0:
-                # Insert row into PostgreSQL database
+                # Insert row into database
                 cursor.execute("""
                 INSERT INTO transactions (date, description, amount, tag, card) 
-                VALUES (%s, %s, %s, %s, 'amex') 
+                VALUES (?, ?, ?, ?, 'amex') 
                 ON CONFLICT (date, description, amount) 
                 DO NOTHING;
                 """, (fecha, descripcion, importe, tag))

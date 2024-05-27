@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[21]:
 
 
 import psycopg2
@@ -12,51 +12,64 @@ import hvplot.pandas
 import param
 from panel import Spacer
 import yaml
+import sqlite3
 pn.extension('tabulator')
 
 
-# In[2]:
+# In[36]:
 
 
 def calculate_compound_interest(P, r, n, t):
     return P * (1 + r/n) ** (n*t)
 
-def fetch_data(query):
-    params = {
-        "dbname": "transactions",
-        "user": "root",
-        "password": "secret",
-        "host": "localhost",
-        "port": "5432"
-    }
+def fetch_data(query, db_path='db/database.db'):
+    """
+    Fetch data from the SQLite database and return it as a pandas DataFrame.
 
-    with psycopg2.connect(**params) as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-            cursor.execute(query)
-            rows = cursor.fetchall()
+    :param query: SQL query to execute.
+    :param db_path: Path to the SQLite database file. Default is 'transactions.db'.
+    :return: pandas DataFrame containing the query results.
+    """
+    # Connect to the SQLite database
+    conn = sqlite3.connect(db_path)
+    
+    # Use pandas to execute the query and fetch the data
+    df = pd.read_sql_query(query, conn)
+    
+    # Close the connection
+    conn.close()
+    
+    return df
 
-    return pd.DataFrame(rows)
+
+# In[43]:
 
 
 df_transactions = fetch_data("SELECT * FROM transactions")
 df_imports = fetch_data("SELECT * FROM imports")
 df_accumulations = fetch_data("SELECT * FROM budget_accumulations")
-
 df_transactions = df_transactions.sort_values(by='tag')
-df_transactions['date'] = pd.to_datetime(df_transactions['date'], format='%d-%m-%y', errors='coerce')
+df_transactions['date'] = pd.to_datetime(df_transactions['date'], format='%Y-%m-%d', errors='coerce')
+df_imports['date'] = pd.to_datetime(df_imports['date'], format='%Y-%m-%d', errors='coerce')
+df_accumulations['date'] = pd.to_datetime(df_accumulations['date'], format='%Y-%m-%d', errors='coerce')
+df_transactions
 
 with open('budgets.yaml', 'r') as file:
     yaml_data = yaml.safe_load(file)
 
-budget_df = pd.DataFrame(yaml_data['budgets'].items(), columns=['tag', 'budget'])
-total_budget_per_month = budget_df['budget'].sum()
+budget_df = pd.DataFrame(yaml_data['budgets'])
+total_budget_per_month = budget_df['amount'].sum()
+total_expenses_per_month = budget_df[ budget_df['category'] == 'Expense' ]['amount'].sum()
+total_investments_per_month = budget_df[ budget_df['category'] != 'Expense' ]['amount'].sum()
+budget_df.columns = ['tag','category','budget']
+df_imports
 
 
-# In[3]:
+# In[44]:
 
 
 start_date = pd.Timestamp('2024-01-01')
-tags = list(yaml_data['budgets'].keys())
+tags = list(budget_df['tag'])
 sort_direction = ['Ascending', 'Descending']
 drop_columns = ['slider_value']
 
@@ -73,8 +86,11 @@ df_accumulations['slider_value'] = df_accumulations['date'].apply(date_to_slider
 month_slider = pn.widgets.IntSlider(name='Month Slider', start=1, end=12, step=1, value=1)
 sort_columns = list(df_transactions.columns)
 
+df_transactions = pd.merge(df_transactions, budget_df, on='tag', how='left')
+df_transactions.drop(columns=['budget'], inplace=True)
 
-# In[4]:
+
+# In[45]:
 
 
 ### Widgets
@@ -98,7 +114,7 @@ sort_column_selector.link(filter_params, value='sort_column')
 sort_order_selector.link(filter_params, value='sort_order')
 
 
-# In[5]:
+# In[46]:
 
 
 @pn.depends(filter_params.param.month, filter_params.param.tags)
@@ -129,26 +145,33 @@ def update_accumulations(month):
     filtered_data = filtered_data.drop(columns=drop_columns, axis=1, errors='ignore')
     return pn.pane.DataFrame(filtered_data, sizing_mode='stretch_width', index=False)
 
-
 @pn.depends(filter_params.param.month, filter_params.param.tags)
 def total_amount_display(month, tags):
     filtered_data = df_transactions[(df_transactions['slider_value'] == month) & (df_transactions['tag'].isin(tags))]
-    total_amount = filtered_data['amount'].sum()
-    diff = total_amount - total_budget_per_month
-    overspent = diff if total_amount > total_budget_per_month else 0
+    total_expense = filtered_data[ filtered_data['category'] != 'Ivestment' ]['amount'].sum()
+    total_invested = filtered_data[ filtered_data['category'] == 'Ivestment' ]['amount'].sum()
+    total = filtered_data['amount'].sum()
+    
+    diff = total_expense - total_expenses_per_month
+    overspent = diff if total_expense > total_expenses_per_month else 0
 
     income = df_imports[df_imports['slider_value'] == month]['amount'].sum()
-    remaining = income - total_amount
+    saved = income - total_expense + total_invested
 
-    total_spent = f"Total Spent: ${total_amount:,.2f}"
+    total = f"Total: ${total:,.2f}"
+    total_spent = f"Total Spent: ${total_expense:,.2f}"
+    total_invested = f"Total Invested: ${total_invested:,.2f}"
+    
     budget_overspent = f"Budget Overspent: ${overspent:,.2f}"
     total_income = f"Total Income: ${income:,.2f}"
-    remaining_text = f"Remaining: ${remaining:,.2f}"
-    compounded = calculate_compound_interest(remaining, .1, 1, 5)
+    remaining_text = f"Saved or Invested: ${saved:,.2f}"
+    compounded = calculate_compound_interest(saved, .1, 1, 5)
     compounded_text = f"Compounded for 5 years at 10% rate: ${compounded:,.2f}"
 
-    return f"{total_spent}\n{budget_overspent}\n{total_income}\n{remaining_text}\n{compounded_text}"
-
+    expenses = f"{total}\n{total_spent}\n{budget_overspent}"
+    incomes_invs = f"{total_income}\n{total_invested}\n{remaining_text}\n{compounded_text}"
+    
+    return f"{expenses}\n\n{incomes_invs}"
 
 @pn.depends(filter_params.param.month, filter_params.param.tags)
 def update_budget_usage(month, tags):
@@ -171,7 +194,7 @@ def update_budget_usage(month, tags):
     return bar_plot
 
 
-# In[6]:
+# In[47]:
 
 
 custom_style_total = {'text-align': 'center', 'font-size': '30px'}
@@ -181,14 +204,18 @@ total_amount_markdown = pn.pane.Markdown(total_amount_display, sizing_mode='stre
 
 title_data_p = pn.pane.Markdown("## Monthly Transaction Summary")
 title_tag_pipeline = pn.pane.Markdown("## Transactions Grouped by Tag")
-budget_title = pn.pane.Markdown(f"## Budget: ${total_budget_per_month:,.2f}")
+budget = f"### Budget: ${total_budget_per_month:,.2f}"
+budget_expenses = f"### Expenses: ${total_expenses_per_month:,.2f}"
+budget_inv = f"### Investments: ${total_investments_per_month:,.2f}"
+budget_detail = pn.pane.Markdown(f"{budget}\n{budget_expenses}\n{budget_inv}\n")
+budget_title = pn.pane.Markdown(f"## Budget")
 
 image_path = "/home/emanjarrez/code/python/budgets-visualization/img/image.png"
 
 layout = pn.GridSpec(sizing_mode='stretch_both')
 layout[0:2, 0] = pn.Column(title_data_p, update_pipeline)
 layout[0, 1] = pn.Column(title_tag_pipeline, update_tag_pipeline, styles=custom_style_tables)
-layout[0, 2] = pn.Column(budget_title, pn.pane.DataFrame(budget_df, sizing_mode='stretch_width'), styles=custom_style_tables)
+layout[0, 2] = pn.Column(budget_title, pn.pane.DataFrame(budget_df, sizing_mode='stretch_width'), budget_detail, styles=custom_style_tables)
 layout[1, 3] = total_amount_markdown
 layout[1, 1] = pn.Column("## Budget Usage Visualization", update_budget_usage, styles=custom_style_tables)
 layout[0, 3] = pn.Column("## Income", update_imports, styles=custom_style_tables)
@@ -212,9 +239,15 @@ template = pn.template.FastListTemplate(
         sort_order_selector
     ],
     main=[layout],
-    accent_base_color="#88d8b0",
-    header_background="#88d8b0"
+    theme='dark'
 )
 
 template.servable()
 # panel serve Visualize.py
+
+
+# In[ ]:
+
+
+
+

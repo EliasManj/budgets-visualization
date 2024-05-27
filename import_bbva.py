@@ -3,6 +3,7 @@ import psycopg2
 from datetime import datetime
 import yaml
 import os
+import sqlite3
 
 def load_keywords():
     with open('keywords.yaml', 'r') as file:
@@ -24,17 +25,10 @@ pd.set_option('display.max_columns', None)
 data_dir = "./data/bbva"
 files = [f for f in os.listdir(data_dir) if f.endswith('.xlsx')]
 
-# Database connection parameters
-params = {
-    "dbname": "transactions",
-    "user": "root",
-    "password": "secret",
-    "host": "localhost",
-    "port": "5432"
-}
-
-# Connect to your PostgreSQL database
-conn = psycopg2.connect(dbname=params['dbname'], user=params['user'], password=params['password'], host=params['host'], port=params['port'])
+print("Connecting to SQLite database...")
+# Connect to SQLite database
+conn = sqlite3.connect('db/database.db')
+print("Connection successful.")
 cursor = conn.cursor()
 
 for file in files:
@@ -53,13 +47,13 @@ for file in files:
         importe = float(row['amount'])
         tag = row['TAG']
         # Check if a record with the same composite primary key exists
-        cursor.execute("SELECT COUNT(*) FROM transactions WHERE date = %s AND description = %s AND amount = %s", (fecha, descripcion, importe))
+        cursor.execute("SELECT COUNT(*) FROM transactions WHERE date = ? AND description = ? AND amount = ?", (fecha, descripcion, importe))
         count = cursor.fetchone()[0]
         if count == 0 and importe > 0.0:
             # Insert row into PostgreSQL database
             cursor.execute("""
             INSERT INTO transactions (date, description, amount, tag, card) 
-            VALUES (%s, %s, %s, %s, 'bbva_credit') 
+            VALUES (?, ?, ?, ?, 'bbva_credit') 
             ON CONFLICT (date, description, amount) 
             DO NOTHING;
             """, (fecha, descripcion, importe, tag))

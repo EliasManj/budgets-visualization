@@ -25,18 +25,12 @@ do
     esac
 done
 
-# If reset flag is set, run docker-compose down -v
 if [ "$RESET" = true ] ; then
-    echo "Resetting Docker Compose environment..."
-    docker-compose down -v
+    echo "Deleting sqlite database"
+    rm -f db/transactions.db
+    echo "Recreating sqlite database from schema.sql"
+    sqlite3 db/transactions.db < schema.sql
 fi
-
-# Start Docker Compose
-docker-compose up -d
-
-# Wait for Docker Compose to fully start services
-echo "Waiting for Docker services to start..."
-sleep 10  # Adjust sleep time as needed
 
 # Activate the Python virtual environment
 source ./myenv/bin/activate
@@ -58,7 +52,5 @@ if [ "$ACCUMULATE" = true ] ; then
 fi
 
 # Convert the Jupyter notebook to a Python script and execute it
-#jupyter nbconvert --to script Visualize.ipynb
+jupyter nbconvert --to script Visualize.ipynb
 panel serve Visualize.py
-sleep 5  # Adjust sleep time as needed
-echo "Running at http://localhost:5006/Visualize"
