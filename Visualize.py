@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[21]:
+# In[1]:
 
 
 import psycopg2
@@ -16,7 +16,7 @@ import sqlite3
 pn.extension('tabulator')
 
 
-# In[36]:
+# In[2]:
 
 
 def calculate_compound_interest(P, r, n, t):
@@ -42,7 +42,7 @@ def fetch_data(query, db_path='db/database.db'):
     return df
 
 
-# In[43]:
+# In[3]:
 
 
 df_transactions = fetch_data("SELECT * FROM transactions")
@@ -65,7 +65,7 @@ budget_df.columns = ['tag','category','budget']
 df_imports
 
 
-# In[44]:
+# In[4]:
 
 
 start_date = pd.Timestamp('2024-01-01')
@@ -90,7 +90,7 @@ df_transactions = pd.merge(df_transactions, budget_df, on='tag', how='left')
 df_transactions.drop(columns=['budget'], inplace=True)
 
 
-# In[45]:
+# In[5]:
 
 
 ### Widgets
@@ -114,8 +114,10 @@ sort_column_selector.link(filter_params, value='sort_column')
 sort_order_selector.link(filter_params, value='sort_order')
 
 
-# In[46]:
+# In[6]:
 
+
+PAGE_SIZE = 35
 
 @pn.depends(filter_params.param.month, filter_params.param.tags)
 def update_tag_pipeline(month, tags):
@@ -129,7 +131,18 @@ def update_pipeline(month, tags, sort_column, sort_order):
     filtered_data = df_transactions[(df_transactions['slider_value'] == month) & (df_transactions['tag'].isin(tags))]
     filtered_data = filtered_data.drop(columns=drop_columns, axis=1, errors='ignore')
     filtered_data = filtered_data.sort_values(by=sort_column, ascending=(sort_order == 'Ascending'))
-    return pn.pane.DataFrame(filtered_data, sizing_mode='stretch_width')
+    filtered_data['date'] = filtered_data['date'].dt.strftime('%Y-%m-%d')
+
+    column_widths = {
+        'date': 100,
+        'description': 250,
+        'amount': 100,
+        'tag': 100,
+        'card': 100,
+        'category': 200
+    }
+    
+    return pn.widgets.Tabulator(filtered_data, pagination='local', page_size=PAGE_SIZE, sizing_mode='stretch_width', show_index=False, widths=column_widths)
 
 
 @pn.depends(filter_params.param.month)
@@ -194,7 +207,7 @@ def update_budget_usage(month, tags):
     return bar_plot
 
 
-# In[47]:
+# In[14]:
 
 
 custom_style_total = {'text-align': 'center', 'font-size': '30px'}
@@ -212,14 +225,25 @@ budget_title = pn.pane.Markdown(f"## Budget")
 
 image_path = "/home/emanjarrez/code/python/budgets-visualization/img/image.png"
 
-layout = pn.GridSpec(sizing_mode='stretch_both')
-layout[0:2, 0] = pn.Column(title_data_p, update_pipeline)
-layout[0, 1] = pn.Column(title_tag_pipeline, update_tag_pipeline, styles=custom_style_tables)
-layout[0, 2] = pn.Column(budget_title, pn.pane.DataFrame(budget_df, sizing_mode='stretch_width'), budget_detail, styles=custom_style_tables)
-layout[1, 3] = total_amount_markdown
-layout[1, 1] = pn.Column("## Budget Usage Visualization", update_budget_usage, styles=custom_style_tables)
-layout[0, 3] = pn.Column("## Income", update_imports, styles=custom_style_tables)
-layout[1, 2] = pn.Column("## Budget Accumulations", update_accumulations, styles=custom_style_tables)
+layout_desktop = pn.GridSpec(sizing_mode='stretch_both')
+layout_desktop[0:2, 0] = pn.Column(title_data_p, update_pipeline)
+layout_desktop[0, 1] = pn.Column(title_tag_pipeline, update_tag_pipeline, styles=custom_style_tables)
+layout_desktop[0, 2] = pn.Column(budget_title, pn.pane.DataFrame(budget_df, sizing_mode='stretch_width'), budget_detail, styles=custom_style_tables)
+layout_desktop[1, 3] = total_amount_markdown
+layout_desktop[1, 1] = pn.Column("## Budget Usage Visualization", update_budget_usage, styles=custom_style_tables)
+layout_desktop[0, 3] = pn.Column("## Income", update_imports, styles=custom_style_tables)
+layout_desktop[1, 2] = pn.Column("## Budget Accumulations", update_accumulations, styles=custom_style_tables)
+
+layout_mobile = pn.Column(
+    pn.GridSpec(sizing_mode='stretch_both'),
+    pn.Column(title_data_p, update_pipeline),
+    pn.Column(title_tag_pipeline, update_tag_pipeline, styles=custom_style_tables),
+    pn.Column(budget_title, pn.pane.DataFrame(budget_df, sizing_mode='stretch_width'), budget_detail, styles=custom_style_tables),
+    pn.Column("## Income", update_imports, styles=custom_style_tables),
+    pn.Column("## Budget Accumulations", update_accumulations, styles=custom_style_tables),
+    pn.Column("## Budget Usage Visualization", update_budget_usage, styles=custom_style_tables),
+    total_amount_markdown
+)
 
 template = pn.template.FastListTemplate(
     title='Spending Dashboard',
@@ -238,7 +262,7 @@ template = pn.template.FastListTemplate(
         sort_column_selector,
         sort_order_selector
     ],
-    main=[layout],
+    main=[layout_desktop],
     theme='dark'
 )
 
