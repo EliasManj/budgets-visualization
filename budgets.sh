@@ -6,7 +6,10 @@ cd /home/emanjarrez/code/python/budgets-visualization
 # Parse arguments
 UPDATE=false
 RESET=false
-ACCUMULATE=fasle
+ACCUMULATE=false
+MONTH=$(date +%m) # Default to current month
+YEAR=$(date +%Y)  # Default to current year
+
 for arg in "$@"
 do
     case $arg in
@@ -22,14 +25,22 @@ do
         ACCUMULATE=true
         shift # Remove --acc from processing
         ;;
+        -m|--month=*)
+        MONTH="${arg#*=}"
+        shift # Remove --month= from processing
+        ;;
+        -y|--year=*)
+        YEAR="${arg#*=}"
+        shift # Remove --year= from processing
+        ;;
     esac
 done
 
 if [ "$RESET" = true ] ; then
     echo "Deleting sqlite database"
-    rm -f db/transactions.db
+    rm -f db/database.db
     echo "Recreating sqlite database from schema.sql"
-    sqlite3 db/transactions.db < schema.sql
+    sqlite3 db/database.db < schema.sql
 fi
 
 # Activate the Python virtual environment
@@ -42,12 +53,10 @@ if [ "$UPDATE" = true ] || [ "$RESET" = true ] ; then
     python import_bbva_debit.py
 fi
 
-# Get the current year and month
-YEAR=$(date +%Y)
-MONTH=$(date +%m)
+sqlite3 db/database.db < db/modifications.sql
 
 if [ "$ACCUMULATE" = true ] ; then
-    # Run the accumulate_budget.py script with the current year and month
+    # Run the accumulate_budget.py script with the specified year and month
     python accumulate_budget.py --year "$YEAR" --month "$MONTH"
 fi
 

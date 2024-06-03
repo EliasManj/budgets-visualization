@@ -135,14 +135,14 @@ def accumulate_transactions(transactions, accumulations):
         final_df = new_merge[['tag', 'amount']]
         return final_df
     
-def insert_to_db(df):
+def insert_to_db(df, args):
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
     for _, row in df.iterrows():
         cur.execute("""
             INSERT OR IGNORE INTO budget_accumulations (tag, amount, date)
             VALUES (?, ?, ?)
-        """, (row['tag'], row['amount'], datetime.now().strftime('%Y-%m-%d')))
+        """, (row['tag'], row['amount'], datetime(args.year, args.month, 1).strftime('%Y-%m-%d')))
     conn.commit()
     cur.close()
     conn.close()
@@ -159,7 +159,7 @@ if __name__ == "__main__":
         accumulations = get_accumulated_budget_from_month_before(args.year, args.month)
         transactions = get_transactions_for_month(args.year, args.month)
         new_accumulations = accumulate_transactions(transactions, accumulations)
-        insert_to_db(new_accumulations)
+        insert_to_db(new_accumulations, args)
         for row in transactions.itertuples():
             print(row)
     except Exception as e:

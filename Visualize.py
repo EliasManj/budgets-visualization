@@ -27,7 +27,7 @@ def fetch_data(query, db_path='db/database.db'):
     Fetch data from the SQLite database and return it as a pandas DataFrame.
 
     :param query: SQL query to execute.
-    :param db_path: Path to the SQLite database file. Default is 'transactions.db'.
+    :param db_path: Path to the SQLite database file. Default is 'database.db'.
     :return: pandas DataFrame containing the query results.
     """
     # Connect to the SQLite database
@@ -88,6 +88,7 @@ sort_columns = list(df_transactions.columns)
 
 df_transactions = pd.merge(df_transactions, budget_df, on='tag', how='left')
 df_transactions.drop(columns=['budget'], inplace=True)
+tags
 
 
 # In[5]:
@@ -218,9 +219,9 @@ total_amount_markdown = pn.pane.Markdown(total_amount_display, sizing_mode='stre
 title_data_p = pn.pane.Markdown("## Monthly Transaction Summary")
 title_tag_pipeline = pn.pane.Markdown("## Transactions Grouped by Tag")
 budget = f"### Budget: ${total_budget_per_month:,.2f}"
-budget_expenses = f"### Expenses: ${total_expenses_per_month:,.2f}"
-budget_inv = f"### Investments: ${total_investments_per_month:,.2f}"
-budget_detail = pn.pane.Markdown(f"{budget}\n{budget_expenses}\n{budget_inv}\n")
+budget_expenses = f"Expenses: ${total_expenses_per_month:,.2f}"
+budget_inv = f"Investments: ${total_investments_per_month:,.2f}"
+budget_detail = pn.pane.Markdown(f"{budget}    {budget_expenses}    {budget_inv}\n")
 budget_title = pn.pane.Markdown(f"## Budget")
 
 image_path = "/home/emanjarrez/code/python/budgets-visualization/img/image.png"

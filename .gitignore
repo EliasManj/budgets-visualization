@@ -166,3 +166,4 @@ myenvpip/
 keywords.yaml
 budgets.yaml
 .vscode/
+db/

@@ -55,10 +55,6 @@ for csv_file in csv_files:
                 DO NOTHING;
                 """, (fecha, descripcion, importe, tag))
 
-                print("Inserted:", csv_file, fecha, descripcion, importe)
-            else:
-                print("Skipping duplicate record:", csv_file, fecha, descripcion, importe)
-
 # Commit changes to the database
 conn.commit()
 print("Changes committed to the database.")

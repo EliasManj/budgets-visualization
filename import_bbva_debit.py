@@ -13,8 +13,6 @@ def load_keywords():
 
 def infer_tag(keywords, description):
     description = description.lower()
-    if 'banamex' in description:
-        print('g')
     for category, category_keywords in keywords.items():
         if category.lower() == 'investments' or category.lower() == 'rent' or category.lower() == 'cetes':
             keyword_pairs = list(map(lambda x: x.split('/'), category_keywords))
@@ -55,7 +53,6 @@ for file in files:
     df = df[df['TAG'] != 'Ignore']
     df['amount'] = df['amount'].str.replace(',', '').astype(float).abs()
     abonos_df['amount'] = abonos_df['amount'].str.replace(',', '').astype(float).abs()
-    print(df)
     for index, row in abonos_df.iterrows():
         fecha = row['date'].date()
         importe = row['amount']
@@ -70,7 +67,6 @@ for file in files:
             DO NOTHING;
             """, (fecha, importe))
             conn.commit()  # Commit the transaction
-            print("Row inserted successfully!")
     # Insert data into the database
     for index, row in df.iterrows():
         fecha = row['date'].date()  # Assuming date is already a datetime object
@@ -91,7 +87,6 @@ for file in files:
                 DO NOTHING;
                 """, (fecha, descripcion, importe, tag))
                 conn.commit()  # Commit the transaction
-                print("Row inserted successfully!")
         else:
             cursor.execute("SELECT COUNT(*) FROM cetes WHERE date = ? AND amount = ?", (fecha, importe))
             count = cursor.fetchone()[0]
@@ -104,7 +99,6 @@ for file in files:
                 DO NOTHING;
                 """, (fecha, importe))
                 conn.commit()  # Commit the transaction
-                print("Row inserted successfully!")
 
 cursor.close()  # Close the cursor
 conn.close()  # Close the connection

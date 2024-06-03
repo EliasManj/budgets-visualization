@@ -58,7 +58,6 @@ for file in files:
             DO NOTHING;
             """, (fecha, descripcion, importe, tag))
             conn.commit()  # Commit the transaction
-            print("Row inserted successfully!")
 
 cursor.close()  # Close the cursor
 conn.close()  # Close the connection
