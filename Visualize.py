@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[9]:
 
 
 import psycopg2
@@ -14,9 +14,13 @@ from panel import Spacer
 import yaml
 import sqlite3
 pn.extension('tabulator')
+pd.set_option('display.max_rows', None)
+pd.set_option('display.max_columns', None)
+pd.set_option('display.width', None)
+pd.set_option('display.max_colwidth', None)
 
 
-# In[2]:
+# In[10]:
 
 
 def calculate_compound_interest(P, r, n, t):
@@ -42,7 +46,7 @@ def fetch_data(query, db_path='db/database.db'):
     return df
 
 
-# In[3]:
+# In[17]:
 
 
 df_transactions = fetch_data("SELECT * FROM transactions")
@@ -52,7 +56,6 @@ df_transactions = df_transactions.sort_values(by='tag')
 df_transactions['date'] = pd.to_datetime(df_transactions['date'], format='%Y-%m-%d', errors='coerce')
 df_imports['date'] = pd.to_datetime(df_imports['date'], format='%Y-%m-%d', errors='coerce')
 df_accumulations['date'] = pd.to_datetime(df_accumulations['date'], format='%Y-%m-%d', errors='coerce')
-df_transactions
 
 with open('budgets.yaml', 'r') as file:
     yaml_data = yaml.safe_load(file)
@@ -62,10 +65,10 @@ total_budget_per_month = budget_df['amount'].sum()
 total_expenses_per_month = budget_df[ budget_df['category'] == 'Expense' ]['amount'].sum()
 total_investments_per_month = budget_df[ budget_df['category'] != 'Expense' ]['amount'].sum()
 budget_df.columns = ['tag','category','budget']
-df_imports
+df_transactions
 
 
-# In[4]:
+# In[12]:
 
 
 start_date = pd.Timestamp('2024-01-01')
@@ -91,7 +94,7 @@ df_transactions.drop(columns=['budget'], inplace=True)
 tags
 
 
-# In[5]:
+# In[13]:
 
 
 ### Widgets
@@ -115,7 +118,7 @@ sort_column_selector.link(filter_params, value='sort_column')
 sort_order_selector.link(filter_params, value='sort_order')
 
 
-# In[6]:
+# In[14]:
 
 
 PAGE_SIZE = 35
@@ -208,7 +211,7 @@ def update_budget_usage(month, tags):
     return bar_plot
 
 
-# In[14]:
+# In[15]:
 
 
 custom_style_total = {'text-align': 'center', 'font-size': '30px'}

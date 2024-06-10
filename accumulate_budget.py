@@ -100,7 +100,6 @@ def open_budget_defs():
     budget_items = yaml_data['budgets']
     # Create a DataFrame
     budget_df = pd.DataFrame(budget_items)
-    print(budget_df)
     return budget_df
 
 def accumulate_transactions(transactions, accumulations):
@@ -114,14 +113,13 @@ def accumulate_transactions(transactions, accumulations):
     # operations
     ##
     merged_df = pd.merge(budgets, accumulations_per_tag, on='tag', how='left')
-    print(merged_df)
     # Fill NaN values in the 'amount' column with 0
     merged_df['amount'] = merged_df['amount'].fillna(0)
     # Subtract the 'amount' column from the 'budget' column
     merged_df['amount'] = merged_df['budget'] - merged_df['amount']
+    print(merged_df)
     # Drop the 'amount' column as it is no longer needed
     result_df = merged_df.drop(columns=['budget'])
-    print(result_df)
     ##
     # end operations
 
@@ -130,7 +128,11 @@ def accumulate_transactions(transactions, accumulations):
     else:
         # Merge the two DataFrames, using 'outer' join to include all tags
         new_merge = pd.merge(result_df, accumulations, on='tag', how='left')
-        new_merge['amount'] = new_merge['amount'].fillna(0)
+        print(result_df)
+        print(accumulations)
+        print(new_merge)
+        new_merge['amount_x'] = new_merge['amount_x'].fillna(0)
+        new_merge['amount_y'] = new_merge['amount_y'].fillna(0)
         new_merge['amount'] = new_merge['amount_x'] + new_merge['amount_y']
         final_df = new_merge[['tag', 'amount']]
         return final_df

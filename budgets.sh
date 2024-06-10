@@ -2,6 +2,7 @@
 
 # Navigate to the project directory
 cd /home/emanjarrez/code/python/budgets-visualization
+source myenv/bin/activate
 
 # Parse arguments
 UPDATE=false
@@ -25,11 +26,11 @@ do
         ACCUMULATE=true
         shift # Remove --acc from processing
         ;;
-        -m|--month=*)
+        -m=*|--month=*)
         MONTH="${arg#*=}"
         shift # Remove --month= from processing
         ;;
-        -y|--year=*)
+        -y=*|--year=*)
         YEAR="${arg#*=}"
         shift # Remove --year= from processing
         ;;
