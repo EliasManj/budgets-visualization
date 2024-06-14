@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[9]:
+# In[1]:
 
 
 import psycopg2
@@ -20,7 +20,7 @@ pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', None)
 
 
-# In[10]:
+# In[2]:
 
 
 def calculate_compound_interest(P, r, n, t):
@@ -46,7 +46,7 @@ def fetch_data(query, db_path='db/database.db'):
     return df
 
 
-# In[17]:
+# In[3]:
 
 
 df_transactions = fetch_data("SELECT * FROM transactions")
@@ -65,10 +65,9 @@ total_budget_per_month = budget_df['amount'].sum()
 total_expenses_per_month = budget_df[ budget_df['category'] == 'Expense' ]['amount'].sum()
 total_investments_per_month = budget_df[ budget_df['category'] != 'Expense' ]['amount'].sum()
 budget_df.columns = ['tag','category','budget']
-df_transactions
 
 
-# In[12]:
+# In[4]:
 
 
 start_date = pd.Timestamp('2024-01-01')
@@ -94,7 +93,7 @@ df_transactions.drop(columns=['budget'], inplace=True)
 tags
 
 
-# In[13]:
+# In[5]:
 
 
 ### Widgets
@@ -118,7 +117,7 @@ sort_column_selector.link(filter_params, value='sort_column')
 sort_order_selector.link(filter_params, value='sort_order')
 
 
-# In[14]:
+# In[6]:
 
 
 PAGE_SIZE = 35
@@ -211,7 +210,7 @@ def update_budget_usage(month, tags):
     return bar_plot
 
 
-# In[15]:
+# In[8]:
 
 
 custom_style_total = {'text-align': 'center', 'font-size': '30px'}

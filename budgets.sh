@@ -11,6 +11,22 @@ ACCUMULATE=false
 MONTH=$(date +%m) # Default to current month
 YEAR=$(date +%Y)  # Default to current year
 
+# Check if any process named "panel" is listening on port 5006
+if sudo lsof -i :5006 | grep -q 'panel'; then
+    echo "Process 'panel' is running on port 5006. Killing the process..."
+    
+    # Get the PID of the process named "panel" listening on port 5006
+    PIDS=$(sudo lsof -t -i :5006 | xargs)
+
+    # Kill the process
+    for PID in $PIDS; do
+        sudo kill -9 $PID
+        echo "Killed process with PID $PID"
+    done
+else
+    echo "No process named 'panel' is running on port 5006."
+fi
+
 for arg in "$@"
 do
     case $arg in
@@ -63,4 +79,4 @@ fi
 
 # Convert the Jupyter notebook to a Python script and execute it
 jupyter nbconvert --to script Visualize.ipynb
-panel serve Visualize.py
+panel serve Visualize.py &

@@ -142,7 +142,7 @@ def insert_to_db(df, args):
     cur = conn.cursor()
     for _, row in df.iterrows():
         cur.execute("""
-            INSERT OR IGNORE INTO budget_accumulations (tag, amount, date)
+            INSERT OR REPLACE INTO budget_accumulations (tag, amount, date)
             VALUES (?, ?, ?)
         """, (row['tag'], row['amount'], datetime(args.year, args.month, 1).strftime('%Y-%m-%d')))
     conn.commit()
