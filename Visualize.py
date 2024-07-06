@@ -23,8 +23,19 @@ pd.set_option('display.max_colwidth', None)
 # In[2]:
 
 
-def calculate_compound_interest(P, r, n, t):
-    return P * (1 + r/n) ** (n*t)
+def calculate_compound_interest_with_monthly_addition(P, r, n, t, M):
+    # Calculate the compound interest for the principal amount
+    compound_interest = P * (1 + r/n) ** (n*t)
+    
+    # Calculate the compound interest for the monthly additions
+    compound_interest_additions = M * (((1 + r/n) ** (n*t) - 1) / (r/n))
+    
+    # Total accumulated amount
+    total_amount = compound_interest + compound_interest_additions
+    
+    return total_amount
+
+
 
 def fetch_data(query, db_path='db/database.db'):
     """
@@ -126,7 +137,11 @@ PAGE_SIZE = 35
 def update_tag_pipeline(month, tags):
     filtered_data = df_transactions[(df_transactions['slider_value'] == month) & (df_transactions['tag'].isin(tags))]
     filtered_data = filtered_data.drop(columns=drop_columns, axis=1, errors='ignore')
-    return pn.pane.DataFrame(filtered_data.groupby('tag')['amount'].sum().reset_index(), sizing_mode='stretch_width', index=False)
+    filtered_data = filtered_data.groupby('tag')['amount'].sum().reset_index()
+    merged_df = pd.merge(filtered_data, budget_df, on='tag', how='inner')
+    desired_order = ['tag', 'category', 'budget', 'amount']
+    merged_df = merged_df[desired_order]
+    return pn.pane.DataFrame(merged_df, sizing_mode='stretch_width', index=False)
 
 
 @pn.depends(filter_params.param.month, filter_params.param.tags, filter_params.param.sort_column, filter_params.param.sort_order)
@@ -164,8 +179,8 @@ def update_accumulations(month):
 @pn.depends(filter_params.param.month, filter_params.param.tags)
 def total_amount_display(month, tags):
     filtered_data = df_transactions[(df_transactions['slider_value'] == month) & (df_transactions['tag'].isin(tags))]
-    total_expense = filtered_data[ filtered_data['category'] != 'Ivestment' ]['amount'].sum()
-    total_invested = filtered_data[ filtered_data['category'] == 'Ivestment' ]['amount'].sum()
+    total_expense = filtered_data[ filtered_data['category'] != 'Investment' ]['amount'].sum()
+    total_invested = filtered_data[ filtered_data['category'] == 'Investment' ]['amount'].sum()
     total = filtered_data['amount'].sum()
     
     diff = total_expense - total_expenses_per_month
@@ -181,7 +196,7 @@ def total_amount_display(month, tags):
     budget_overspent = f"Budget Overspent: ${overspent:,.2f}"
     total_income = f"Total Income: ${income:,.2f}"
     remaining_text = f"Saved or Invested: ${saved:,.2f}"
-    compounded = calculate_compound_interest(saved, .1, 1, 5)
+    compounded = calculate_compound_interest_with_monthly_addition(saved, .1, 1, 5, saved)
     compounded_text = f"Compounded for 5 years at 10% rate: ${compounded:,.2f}"
 
     expenses = f"{total}\n{total_spent}\n{budget_overspent}"
@@ -210,7 +225,7 @@ def update_budget_usage(month, tags):
     return bar_plot
 
 
-# In[8]:
+# In[7]:
 
 
 custom_style_total = {'text-align': 'center', 'font-size': '30px'}
@@ -231,7 +246,7 @@ image_path = "/home/emanjarrez/code/python/budgets-visualization/img/image.png"
 layout_desktop = pn.GridSpec(sizing_mode='stretch_both')
 layout_desktop[0:2, 0] = pn.Column(title_data_p, update_pipeline)
 layout_desktop[0, 1] = pn.Column(title_tag_pipeline, update_tag_pipeline, styles=custom_style_tables)
-layout_desktop[0, 2] = pn.Column(budget_title, pn.pane.DataFrame(budget_df, sizing_mode='stretch_width'), budget_detail, styles=custom_style_tables)
+layout_desktop[0, 2] = pn.Column(budget_title, pn.pane.DataFrame(budget_df, sizing_mode='stretch_width', index=False), budget_detail, styles=custom_style_tables)
 layout_desktop[1, 3] = total_amount_markdown
 layout_desktop[1, 1] = pn.Column("## Budget Usage Visualization", update_budget_usage, styles=custom_style_tables)
 layout_desktop[0, 3] = pn.Column("## Income", update_imports, styles=custom_style_tables)
