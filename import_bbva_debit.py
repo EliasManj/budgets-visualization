@@ -25,7 +25,7 @@ def process_transfer(s):
 
 def infer_tag(keywords, description):
     description = description.lower()
-    if "0095435672" in description:
+    if "0051752472" in description:
         print("a")
     transferencia = process_transfer(description)
     if transferencia:
@@ -86,6 +86,7 @@ for file in files:
     df["TAG"] = df["description"].apply(lambda x: infer_tag(keywords, x))
     df = df[df["TAG"] != "Ignore"]
     df["amount"] = df["amount"].str.replace(",", "").astype(float).abs()
+    abonos_df["amount"] = abonos_df["amount"].astype(str)
     abonos_df["amount"] = abonos_df["amount"].str.replace(",", "").astype(float).abs()
     for index, row in abonos_df.iterrows():
         fecha = row["date"].date()
