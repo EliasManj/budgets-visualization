@@ -23,6 +23,7 @@ pd.set_option('display.max_colwidth', None)
 # In[2]:
 
 
+# https://www.nerdwallet.com/calculator/compound-interest-calculator
 def calculate_compound_interest_with_monthly_addition(P, r, n, t, M):
     # Calculate the compound interest for the principal amount
     compound_interest = P * (1 + r/n) ** (n*t)
@@ -241,7 +242,7 @@ budget_inv = f"Investments: ${total_investments_per_month:,.2f}"
 budget_detail = pn.pane.Markdown(f"{budget}    {budget_expenses}    {budget_inv}\n")
 budget_title = pn.pane.Markdown(f"## Budget")
 
-image_path = "/home/emanjarrez/code/python/budgets-visualization/img/image.png"
+image_path = "/home/eliasmanj/code/python/budgets-visualization/img/image.png"
 
 layout_desktop = pn.GridSpec(sizing_mode='stretch_both')
 layout_desktop[0:2, 0] = pn.Column(title_data_p, update_pipeline)

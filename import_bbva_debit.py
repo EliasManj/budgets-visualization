@@ -1,57 +1,7 @@
 import pandas as pd
-import psycopg2
-from datetime import datetime
-import yaml
 import os
-import re
 import sqlite3
-
-pattern = r"(spei\senviado\s\w+)\s+\/\s+\w+\s+(\d+)\s+\d+([\w-]+)"
-
-
-def load_keywords():
-    with open("keywords.yaml", "r") as file:
-        keywords = yaml.safe_load(file)
-        return keywords
-
-
-def process_transfer(s):
-    match = re.search(pattern, s)
-    if match:
-        return f"{match.group(1)} / {match.group(2)} / {match.group(3)}"
-    else:
-        return None
-
-
-def infer_tag(keywords, description):
-    description = description.lower()
-    if "0051752472" in description:
-        print("a")
-    transferencia = process_transfer(description)
-    if transferencia:
-        for category, category_keywords in keywords.items():
-            if (
-                category.lower() == "investments"
-                or category.lower() == "rent"
-                or category.lower() == "cetes"
-                or category.lower() == "gym"
-            ):
-                match = process_transfer(description)
-                if match:
-                    keyword_pairs = list(map(lambda x: x.split("/"), category_keywords))
-                    keyword_pairs = [pair for pair in keyword_pairs if len(pair) > 2]
-                    if any(
-                        keyword_pair[0].lower() in match
-                        and keyword_pair[1].lower()
-                        and keyword_pair[2].lower() in match
-                        for keyword_pair in keyword_pairs
-                    ):
-                        return category.capitalize()
-    for category, category_keywords in keywords.items():
-        if any(keyword.lower() in description for keyword in category_keywords):
-            return category.capitalize()
-    return "Other"
-
+import utils
 
 # Assuming df is your DataFrame
 pd.set_option("display.max_rows", None)
@@ -67,8 +17,7 @@ conn = sqlite3.connect("db/database.db")
 print("Connection successful.")
 cursor = conn.cursor()
 
-# load keywords
-keywords = load_keywords()
+data = utils.load_keywords()
 
 for file in files:
     df = pd.read_excel(os.path.join(data_dir, file), skiprows=[0, 1, 2])
@@ -83,7 +32,9 @@ for file in files:
         inplace=True,
     )
     abonos_df.rename(columns={"ABONO": "amount", "FECHA": "date"}, inplace=True)
-    df["TAG"] = df["description"].apply(lambda x: infer_tag(keywords, x))
+    df["TAG"] = df["description"].apply(lambda x: utils.infer_tag(data, x))
+    df["description"] = df["description"].str.lower()
+    df['description'] = df['description'].apply(lambda x: ' '.join(x.split()))
     df = df[df["TAG"] != "Ignore"]
     df["amount"] = df["amount"].str.replace(",", "").astype(float).abs()
     abonos_df["amount"] = abonos_df["amount"].astype(str)
@@ -112,7 +63,6 @@ for file in files:
     for index, row in df.iterrows():
         fecha = row["date"].date()  # Assuming date is already a datetime object
         descripcion = row["description"]
-        descripcion = re.sub(r"\s+", "-", descripcion)
         importe = row["amount"]
         tag = row["TAG"]
         # Check if a record with the same composite primary key exists

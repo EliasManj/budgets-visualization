@@ -1,21 +1,7 @@
 import pandas as pd
-import psycopg2
-from datetime import datetime
-import yaml
 import os
 import sqlite3
-
-def load_keywords():
-    with open('keywords.yaml', 'r') as file:
-        return yaml.safe_load(file)
-
-def infer_tag(description: str) -> str:
-    keywords = load_keywords()
-    description = description.lower()
-    for category, category_keywords in keywords.items():
-        if any(keyword in description for keyword in category_keywords):
-            return category.capitalize()
-    return "Other"
+import utils
 
 # Assuming df is your DataFrame
 pd.set_option('display.max_rows', None)
@@ -25,11 +11,11 @@ pd.set_option('display.max_columns', None)
 data_dir = "./data/bbva"
 files = [f for f in os.listdir(data_dir) if f.endswith('.xlsx')]
 
-print("Connecting to SQLite database...")
 # Connect to SQLite database
 conn = sqlite3.connect('db/database.db')
-print("Connection successful.")
 cursor = conn.cursor()
+
+data = utils.load_keywords()
 
 for file in files:
     df = pd.read_excel(os.path.join(data_dir, file), skiprows=[0, 1, 3])
@@ -39,11 +25,12 @@ for file in files:
     df = df[df['CARGO'] >= 0]
     df = df.drop(columns=['ABONO', 'SALDO'])
     df.rename(columns={'DESCRIPCIÓN': 'description', 'CARGO': 'amount', 'FECHA': 'date'}, inplace=True)
-    df['TAG'] = df['description'].apply(lambda x: infer_tag(x))
+    df['TAG'] = df['description'].apply(lambda x: utils.infer_tag(data, x))
     # Insert data into the database
     for index, row in df.iterrows():
         fecha = row['date'].date()  # Assuming date is already a datetime object
         descripcion = row['description']
+        descripcion = ' '.join(descripcion.split())
         importe = float(row['amount'])
         tag = row['TAG']
         # Check if a record with the same composite primary key exists

@@ -4,18 +4,7 @@ import sqlite3
 from datetime import datetime
 import re
 import yaml
-
-def load_keywords():
-    with open('keywords.yaml', 'r') as file:
-        return yaml.safe_load(file)
-
-def infer_tag(description: str) -> str:
-    keywords = load_keywords()
-    description = descripcion.lower()
-    for category, category_keywords in keywords.items():
-        if any(keyword in description for keyword in category_keywords):
-            return category.capitalize()
-    return "Other"
+import utils
 
 print("Connecting to SQLite database...")
 # Connect to SQLite database
@@ -29,6 +18,8 @@ cursor = conn.cursor()
 data_dir = "./data/amex"
 csv_files = [f for f in os.listdir(data_dir) if f.endswith('.csv')]
 
+data = utils.load_keywords()
+
 # Process each CSV file
 for csv_file in csv_files:
     print(f"Processing CSV file: {csv_file}")
@@ -38,9 +29,9 @@ for csv_file in csv_files:
             # Parse date from string to Python date object
             fecha = datetime.strptime(row['Fecha'], '%d %b %Y').date()
             descripcion = row['Descripción']
-            descripcion = re.sub(r'\s+', '-', descripcion)
+            descripcion = ' '.join(descripcion.split())
             importe = float(row['Importe'])
-            tag = infer_tag(descripcion)
+            tag = utils.infer_tag(data, descripcion)
             
             # Check if a record with the same composite primary key exists
             cursor.execute("SELECT COUNT(*) FROM transactions WHERE date = ? AND description = ? AND amount = ?", (fecha, descripcion, importe))

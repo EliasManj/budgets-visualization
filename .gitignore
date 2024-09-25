@@ -165,8 +165,10 @@ cython_debug/
 
 data/
 myenv/
+venv/
 myenvpip/
 keywords.yaml
 budgets.yaml
 .vscode/
 db/
+*.service
