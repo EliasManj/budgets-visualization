@@ -19,12 +19,28 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', None)
 
+#calculate_compound_interest_with_monthly_addition(saved, .1, 1, 5, saved)
+months = {
+    'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+    'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+}
 
 # In[2]:
 
 
 # https://www.nerdwallet.com/calculator/compound-interest-calculator
-def calculate_compound_interest_with_monthly_addition(P, r, n, t, M):
+# http://www.moneychimp.com/calculator/compound_interest_calculator.htm
+def calculate_compound_interest_with_yearly_addition(P, r, n, t, M):
+    """
+    Calculate compound interest with yearly contributions.
+    
+    :param P: Initial principal amount
+    :param r: Annual interest rate (decimal, so 10% = 0.10)
+    :param n: Number of compounding periods per year (12 for monthly, 1 for annually)
+    :param t: Time in years
+    :param M: Yearly contribution amount
+    :return: Total accumulated amount
+    """
     # Calculate the compound interest for the principal amount
     compound_interest = P * (1 + r/n) ** (n*t)
     
@@ -36,6 +52,29 @@ def calculate_compound_interest_with_monthly_addition(P, r, n, t, M):
     
     return total_amount
 
+def calculate_compound_interest_with_monthly_addition(P, r, t, M):
+    """
+    Calculate compound interest with monthly contributions.
+
+    :param P: Initial principal amount
+    :param r: Annual interest rate (decimal, so 10% = 0.10)
+    :param t: Time in years
+    :param M: Monthly contribution amount
+    :return: Total accumulated amount
+    """
+    n = 12  # Compounding periods per year (12 for monthly)
+    monthly_rate = r / n  # Monthly interest rate
+    
+    # Calculate the compound interest for the principal amount
+    compound_interest = P * (1 + monthly_rate) ** (n * t)
+    
+    # Calculate the compound interest for the monthly additions
+    compound_interest_additions = M * (((1 + monthly_rate) ** (n * t) - 1) / monthly_rate)
+    
+    # Total accumulated amount
+    total_amount = compound_interest + compound_interest_additions
+    
+    return total_amount
 
 
 def fetch_data(query, db_path='db/database.db'):
@@ -97,7 +136,7 @@ df_transactions['slider_value'] = df_transactions['date'].apply(date_to_slider_v
 df_imports['slider_value'] = df_imports['date'].apply(date_to_slider_value)
 df_accumulations['slider_value'] = df_accumulations['date'].apply(date_to_slider_value)
 
-month_slider = pn.widgets.IntSlider(name='Month Slider', start=1, end=12, step=1, value=1)
+month_slider = pn.widgets.DiscreteSlider(name='Month Slider', options=months, value=1)
 sort_columns = list(df_transactions.columns)
 
 df_transactions = pd.merge(df_transactions, budget_df, on='tag', how='left')
@@ -110,6 +149,17 @@ tags
 
 ### Widgets
 tag_check_box = pn.widgets.CheckBoxGroup(name='Tags', options=tags, value=tags)
+select_all_button = pn.widgets.Button(name='Select All', button_type='primary')
+clear_all_button = pn.widgets.Button(name='Clear All', button_type='warning')
+
+def select_all(event):
+    tag_check_box.value = tags  
+
+def clear_all(event):
+    tag_check_box.value = []
+
+select_all_button.on_click(select_all)
+clear_all_button.on_click(clear_all)
 
 class FilterParams(param.Parameterized):
     month = param.Integer(default=1, bounds=(1, 12))
@@ -128,6 +178,10 @@ sort_order_selector = pn.widgets.RadioBoxGroup(name='Sort Order', options=sort_d
 sort_column_selector.link(filter_params, value='sort_column')
 sort_order_selector.link(filter_params, value='sort_order')
 
+tag_selection_widget = pn.Column(
+    pn.pane.Markdown("### Filter by Tags"),
+    select_all_button, clear_all_button, tag_check_box
+)
 
 # In[6]:
 
@@ -188,20 +242,21 @@ def total_amount_display(month, tags):
     overspent = diff if total_expense > total_expenses_per_month else 0
 
     income = df_imports[df_imports['slider_value'] == month]['amount'].sum()
-    saved = income - total_expense + total_invested
+    saved = income - total_expense
 
     total = f"Total: ${total:,.2f}"
     total_spent = f"Total Spent: ${total_expense:,.2f}"
-    total_invested = f"Total Invested: ${total_invested:,.2f}"
+    total_invested_str = f"Total Invested: ${total_invested:,.2f}"
     
     budget_overspent = f"Budget Overspent: ${overspent:,.2f}"
     total_income = f"Total Income: ${income:,.2f}"
-    remaining_text = f"Saved or Invested: ${saved:,.2f}"
-    compounded = calculate_compound_interest_with_monthly_addition(saved, .1, 1, 5, saved)
-    compounded_text = f"Compounded for 5 years at 10% rate: ${compounded:,.2f}"
+    remaining_text = f"Saved cash this month: ${saved:,.2f}"
+
+    no_interest_text = f"${total_invested:,.2f}/y for 5 years: ${total_invested*5*12:,.2f}" 
+    compounded_text = f"${total_invested:,.2f}/y for 5 years compounded at 10%: ${calculate_compound_interest_with_monthly_addition(total_invested, .1, 5, total_invested):,.2f}"
 
     expenses = f"{total}\n{total_spent}\n{budget_overspent}"
-    incomes_invs = f"{total_income}\n{total_invested}\n{remaining_text}\n{compounded_text}"
+    incomes_invs = f"{total_income}\n{total_invested_str}\n{remaining_text}\n{no_interest_text}\n{compounded_text}"
     
     return f"{expenses}\n\n{incomes_invs}"
 
@@ -246,23 +301,22 @@ image_path = "/home/eliasmanj/code/python/budgets-visualization/img/image.png"
 
 layout_desktop = pn.GridSpec(sizing_mode='stretch_both')
 layout_desktop[0:2, 0] = pn.Column(title_data_p, update_pipeline)
-layout_desktop[0, 1] = pn.Column(title_tag_pipeline, update_tag_pipeline, styles=custom_style_tables)
-layout_desktop[0, 2] = pn.Column(budget_title, pn.pane.DataFrame(budget_df, sizing_mode='stretch_width', index=False), budget_detail, styles=custom_style_tables)
-layout_desktop[1, 3] = total_amount_markdown
-layout_desktop[1, 1] = pn.Column("## Budget Usage Visualization", update_budget_usage, styles=custom_style_tables)
-layout_desktop[0, 3] = pn.Column("## Income", update_imports, styles=custom_style_tables)
-layout_desktop[1, 2] = pn.Column("## Budget Accumulations", update_accumulations, styles=custom_style_tables)
-
-layout_mobile = pn.Column(
-    pn.GridSpec(sizing_mode='stretch_both'),
-    pn.Column(title_data_p, update_pipeline),
-    pn.Column(title_tag_pipeline, update_tag_pipeline, styles=custom_style_tables),
-    pn.Column(budget_title, pn.pane.DataFrame(budget_df, sizing_mode='stretch_width'), budget_detail, styles=custom_style_tables),
-    pn.Column("## Income", update_imports, styles=custom_style_tables),
-    pn.Column("## Budget Accumulations", update_accumulations, styles=custom_style_tables),
-    pn.Column("## Budget Usage Visualization", update_budget_usage, styles=custom_style_tables),
-    total_amount_markdown
+layout_desktop[0, 1] = pn.Column(title_tag_pipeline, update_tag_pipeline, budget_detail, styles=custom_style_tables)
+layout_desktop[1, 2] = total_amount_markdown
+layout_desktop[1, 1] = pn.Column(
+    pn.layout.VSpacer(),  # Spacer to push content down
+    pn.pane.Markdown("## Budget Usage Visualization", align='center'),  # Title aligned to center
+    pn.Row(  # Row for centering the plot
+        pn.layout.HSpacer(),  # Spacer on the left to center horizontally
+        update_budget_usage,  # The plot
+        pn.layout.HSpacer()   # Spacer on the right to center horizontally
+    ),
+    pn.layout.VSpacer(),  # Spacer to push content up
+    styles=custom_style_tables,
+    sizing_mode='stretch_both'  # Ensure the entire column expands
 )
+
+layout_desktop[0, 2] = pn.Column("## Income", update_imports, styles=custom_style_tables)
 
 template = pn.template.FastListTemplate(
     title='Spending Dashboard',
@@ -275,7 +329,7 @@ template = pn.template.FastListTemplate(
         month_slider,
         pn.Spacer(height=20),
         pn.pane.Markdown("### Filer by Tags"),
-        tag_check_box,
+        tag_selection_widget,
         pn.Spacer(height=20),
         pn.pane.Markdown("### Sort by"),
         sort_column_selector,

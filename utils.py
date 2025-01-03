@@ -9,6 +9,8 @@ def load_keywords():
 def infer_tag(data, description):
     description = description.lower()
     description = ' '.join(description.split())
+    if "0087608020" in description:
+        print("a")
     # Iterate through each category and its keywords/regex
     for category, patterns in data.items():
         for pattern in patterns:

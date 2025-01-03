@@ -80,5 +80,5 @@ if [ "$ACCUMULATE" = true ] ; then
 fi
 
 # Convert the Jupyter notebook to a Python script and execute it
-jupyter nbconvert --to script Visualize.ipynb
+#jupyter nbconvert --to script Visualize.ipynb
 panel serve Visualize.py
