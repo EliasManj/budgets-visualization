@@ -139,6 +139,14 @@ df_accumulations['slider_value'] = df_accumulations['date'].apply(date_to_slider
 month_slider = pn.widgets.DiscreteSlider(name='Month Slider', options=months, value=1)
 sort_columns = list(df_transactions.columns)
 
+# Define year slider with a range of years
+year_slider = pn.widgets.IntSlider(
+    name='Year Slider', 
+    start=2024,  # Adjust start year as needed
+    end=2026,    # Adjust end year as needed
+    value=2024   # Default value
+)
+
 df_transactions = pd.merge(df_transactions, budget_df, on='tag', how='left')
 df_transactions.drop(columns=['budget'], inplace=True)
 tags
@@ -162,6 +170,7 @@ select_all_button.on_click(select_all)
 clear_all_button.on_click(clear_all)
 
 class FilterParams(param.Parameterized):
+    year = param.Integer(default=2024, bounds=(2020, 2030)) 
     month = param.Integer(default=1, bounds=(1, 12))
     tags = param.ListSelector(default=tags)
     sort_column = param.ObjectSelector(default='date', objects=sort_columns)
@@ -170,6 +179,7 @@ class FilterParams(param.Parameterized):
 filter_params = FilterParams()
 
 month_slider.link(filter_params, value='month')
+year_slider.link(filter_params, value='year')
 tag_check_box.link(filter_params, value='tags')
 
 sort_column_selector = pn.widgets.Select(name='Sort Column', options=sort_columns, value='date')
@@ -199,9 +209,13 @@ def update_tag_pipeline(month, tags):
     return pn.pane.DataFrame(merged_df, sizing_mode='stretch_width', index=False)
 
 
-@pn.depends(filter_params.param.month, filter_params.param.tags, filter_params.param.sort_column, filter_params.param.sort_order)
-def update_pipeline(month, tags, sort_column, sort_order):
-    filtered_data = df_transactions[(df_transactions['slider_value'] == month) & (df_transactions['tag'].isin(tags))]
+@pn.depends(filter_params.param.month, filter_params.param.year, filter_params.param.tags, filter_params.param.sort_column, filter_params.param.sort_order)
+def update_pipeline(month, year, tags, sort_column, sort_order):
+    filtered_data = df_transactions[
+        (df_transactions['slider_value'] == month) & 
+        (df_transactions['date'].dt.year == year) & 
+        (df_transactions['tag'].isin(tags))
+    ]
     filtered_data = filtered_data.drop(columns=drop_columns, axis=1, errors='ignore')
     filtered_data = filtered_data.sort_values(by=sort_column, ascending=(sort_order == 'Ascending'))
     filtered_data['date'] = filtered_data['date'].dt.strftime('%Y-%m-%d')
@@ -280,6 +294,11 @@ def update_budget_usage(month, tags):
     )
     return bar_plot
 
+@pn.depends(filter_params.param.month)  # Example dependency for month; adjust as needed
+def update_cetes(month):
+    query = "SELECT * FROM cetes"
+    cetes_data = fetch_data(query)
+    return pn.pane.DataFrame(cetes_data, sizing_mode='stretch_width', index=False)
 
 # In[7]:
 
@@ -300,7 +319,13 @@ budget_title = pn.pane.Markdown(f"## Budget")
 image_path = "/home/eliasmanj/code/python/budgets-visualization/img/image.png"
 
 layout_desktop = pn.GridSpec(sizing_mode='stretch_both')
-layout_desktop[0:2, 0] = pn.Column(title_data_p, update_pipeline)
+layout_desktop[0, 0] = pn.Column(title_data_p, update_pipeline)
+layout_desktop[1, 0] = pn.Column(
+    pn.pane.Markdown("## CETES Data", align='center'),
+    update_cetes,
+    styles={'text-align': 'center', 'border': '1px solid black', 'padding': '10px'},
+    sizing_mode='stretch_both'
+)
 layout_desktop[0, 1] = pn.Column(title_tag_pipeline, update_tag_pipeline, budget_detail, styles=custom_style_tables)
 layout_desktop[1, 2] = total_amount_markdown
 layout_desktop[1, 1] = pn.Column(
@@ -322,13 +347,15 @@ template = pn.template.FastListTemplate(
     title='Spending Dashboard',
     sidebar=[
         pn.pane.Markdown("# Transactions of 2024"),
-        pn.pane.Markdown("### “You’ve learned the lessons well. You first learned to live on less than you earn. Next you learned to seek advice from those who are competent. Lastly, you’ve learned to make gold work for you.”"),
+        pn.pane.Markdown("### “You’ve learned the lessons well...”"),
         pn.pane.PNG(image_path, width=300),
         pn.pane.Markdown("## Settings"),
+        pn.pane.Markdown("### Filter by Year"),
+        year_slider,  # Add the year slider here
         pn.pane.Markdown("### Filter by Month"),
         month_slider,
         pn.Spacer(height=20),
-        pn.pane.Markdown("### Filer by Tags"),
+        pn.pane.Markdown("### Filter by Tags"),
         tag_selection_widget,
         pn.Spacer(height=20),
         pn.pane.Markdown("### Sort by"),
@@ -338,6 +365,7 @@ template = pn.template.FastListTemplate(
     main=[layout_desktop],
     theme='dark'
 )
+
 
 template.servable()
 # panel serve Visualize.py
