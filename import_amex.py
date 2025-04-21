@@ -23,6 +23,8 @@ data = utils.load_keywords()
 # Process each CSV file
 for csv_file in csv_files:
     print(f"Processing CSV file: {csv_file}")
+    if "2025" in csv_file:
+        print()
     with open(os.path.join(data_dir, csv_file), newline='') as csvfile:
         reader = csv.DictReader(csvfile, delimiter=',')
         for row in reader:

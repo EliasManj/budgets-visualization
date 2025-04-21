@@ -127,10 +127,7 @@ sort_direction = ['Ascending', 'Descending']
 drop_columns = ['slider_value']
 
 def date_to_slider_value(date):
-    if pd.isna(date):
-        return None
-    return (date.year - start_date.year) * 12 + (date.month - start_date.month) + 1
-
+    return date.month
 
 df_transactions['slider_value'] = df_transactions['date'].apply(date_to_slider_value)
 df_imports['slider_value'] = df_imports['date'].apply(date_to_slider_value)
@@ -196,7 +193,7 @@ tag_selection_widget = pn.Column(
 # In[6]:
 
 
-PAGE_SIZE = 35
+PAGE_SIZE = 25
 
 @pn.depends(filter_params.param.month, filter_params.param.tags)
 def update_tag_pipeline(month, tags):
@@ -211,6 +208,7 @@ def update_tag_pipeline(month, tags):
 
 @pn.depends(filter_params.param.month, filter_params.param.year, filter_params.param.tags, filter_params.param.sort_column, filter_params.param.sort_order)
 def update_pipeline(month, year, tags, sort_column, sort_order):
+    print(f'month {month}, year {year}')
     filtered_data = df_transactions[
         (df_transactions['slider_value'] == month) & 
         (df_transactions['date'].dt.year == year) & 
@@ -257,6 +255,7 @@ def total_amount_display(month, tags):
 
     income = df_imports[df_imports['slider_value'] == month]['amount'].sum()
     saved = income - total_expense
+    saved = 0 if saved < 0 else saved
 
     total = f"Total: ${total:,.2f}"
     total_spent = f"Total Spent: ${total_expense:,.2f}"
@@ -319,16 +318,16 @@ budget_title = pn.pane.Markdown(f"## Budget")
 image_path = "/home/eliasmanj/code/python/budgets-visualization/img/image.png"
 
 layout_desktop = pn.GridSpec(sizing_mode='stretch_both')
-layout_desktop[0, 0] = pn.Column(title_data_p, update_pipeline)
-layout_desktop[1, 0] = pn.Column(
+layout_desktop[0:3, 0] = pn.Column(title_data_p, update_pipeline)
+layout_desktop[3, 0] = pn.Column(
     pn.pane.Markdown("## CETES Data", align='center'),
     update_cetes,
     styles={'text-align': 'center', 'border': '1px solid black', 'padding': '10px'},
     sizing_mode='stretch_both'
 )
-layout_desktop[0, 1] = pn.Column(title_tag_pipeline, update_tag_pipeline, budget_detail, styles=custom_style_tables)
-layout_desktop[1, 2] = total_amount_markdown
-layout_desktop[1, 1] = pn.Column(
+
+layout_desktop[0:2, 1] = pn.Column(title_tag_pipeline, update_tag_pipeline, budget_detail, styles=custom_style_tables)
+layout_desktop[2:4, 1] = pn.Column(
     pn.layout.VSpacer(),  # Spacer to push content down
     pn.pane.Markdown("## Budget Usage Visualization", align='center'),  # Title aligned to center
     pn.Row(  # Row for centering the plot
@@ -341,12 +340,13 @@ layout_desktop[1, 1] = pn.Column(
     sizing_mode='stretch_both'  # Ensure the entire column expands
 )
 
-layout_desktop[0, 2] = pn.Column("## Income", update_imports, styles=custom_style_tables)
+layout_desktop[0:2, 2] = pn.Column("## Income", update_imports, styles=custom_style_tables)
+layout_desktop[2:4, 2] = total_amount_markdown
 
 template = pn.template.FastListTemplate(
     title='Spending Dashboard',
     sidebar=[
-        pn.pane.Markdown("# Transactions of 2024"),
+        pn.pane.Markdown("# Transactions"),
         pn.pane.Markdown("### “You’ve learned the lessons well...”"),
         pn.pane.PNG(image_path, width=300),
         pn.pane.Markdown("## Settings"),

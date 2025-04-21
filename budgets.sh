@@ -81,4 +81,4 @@ fi
 
 # Convert the Jupyter notebook to a Python script and execute it
 #jupyter nbconvert --to script Visualize.ipynb
-panel serve Visualize.py
+panel serve Visualize.py --show --log-level debug
