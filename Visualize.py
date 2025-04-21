@@ -283,7 +283,12 @@ def total_amount_display(month, tags):
         ),
     ])
 
-    return pn.pane.HTML(html_content, sizing_mode='stretch_width')
+    return pn.pane.HTML(f'''
+<div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; width: 100%;">
+    {html_content}
+</div>
+''', sizing_mode='stretch_both')
+
 
 
 @pn.depends(filter_params.param.month, filter_params.param.tags)
