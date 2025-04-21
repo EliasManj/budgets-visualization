@@ -9,6 +9,7 @@ from psycopg2.extras import RealDictCursor
 import pandas as pd
 import panel as pn
 import hvplot.pandas
+from datetime import datetime
 import param
 from panel import Spacer
 import yaml
@@ -18,6 +19,10 @@ pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', None)
+
+now = datetime.now()
+default_month = now.month     # e.g., 4 for April
+default_year = now.year       # e.g., 2025
 
 #calculate_compound_interest_with_monthly_addition(saved, .1, 1, 5, saved)
 months = {
@@ -133,16 +138,20 @@ df_transactions['slider_value'] = df_transactions['date'].apply(date_to_slider_v
 df_imports['slider_value'] = df_imports['date'].apply(date_to_slider_value)
 df_accumulations['slider_value'] = df_accumulations['date'].apply(date_to_slider_value)
 
-month_slider = pn.widgets.DiscreteSlider(name='Month Slider', options=months, value=1)
-sort_columns = list(df_transactions.columns)
-
-# Define year slider with a range of years
-year_slider = pn.widgets.IntSlider(
-    name='Year Slider', 
-    start=2024,  # Adjust start year as needed
-    end=2026,    # Adjust end year as needed
-    value=2024   # Default value
+month_slider = pn.widgets.DiscreteSlider(
+    name='Month Slider',
+    options=months,
+    value=default_month  # 👈 Set to current month
 )
+
+year_slider = pn.widgets.IntSlider(
+    name='Year Slider',
+    start=2024,
+    end=2026,
+    value=default_year   # 👈 Set to current year
+)
+
+sort_columns = list(df_transactions.columns)
 
 df_transactions = pd.merge(df_transactions, budget_df, on='tag', how='left')
 df_transactions.drop(columns=['budget'], inplace=True)
@@ -167,8 +176,8 @@ select_all_button.on_click(select_all)
 clear_all_button.on_click(clear_all)
 
 class FilterParams(param.Parameterized):
-    year = param.Integer(default=2024, bounds=(2020, 2030)) 
-    month = param.Integer(default=1, bounds=(1, 12))
+    year = param.Integer(default=default_year, bounds=(2020, 2030)) 
+    month = param.Integer(default=default_month, bounds=(1, 12))
     tags = param.ListSelector(default=tags)
     sort_column = param.ObjectSelector(default='date', objects=sort_columns)
     sort_order = param.Selector(default='Ascending', objects=sort_direction)
@@ -264,13 +273,13 @@ def total_amount_display(month, tags):
         '''
 
     html_content = "".join([
-        with_tooltip("Total", total, "Total amount spent and invested combined"),
-        with_tooltip("Total Spent", total_expense, "Amount spent on expenses this month"),
-        with_tooltip("Budget Overspent", overspent, "Amount over your monthly budget"),
+        with_tooltip("Total", total, "Total de dinero que gastaste en gastos e inversiones"),
+        with_tooltip("Total Spent", total_expense, "Total de dinero que gastaste en gastos"),
+        with_tooltip("Budget Overspent", overspent, "Lo que gastaste de mas segun tu budget del mes"),
         "<br>",
-        with_tooltip("Total Income", income, "Total income received this month"),
-        with_tooltip("Total Invested", total_invested, "Amount invested this month"),
-        with_tooltip("Saved cash this month", saved, "Remaining cash after expenses"),
+        with_tooltip("Total Income", income, "Total de ingresos"),
+        with_tooltip("Total Invested", total_invested, "Total de dinero gastado en inversiones"),
+        with_tooltip("Saved cash this month", saved, "Dinero sobrante que no fue transferido a enversiones y se quedo en la cuenta bancaria"),
         with_tooltip(
             f"{total_invested:,.2f}/y for 5 years (no interest)",
             total_invested*5*12,
