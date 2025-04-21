@@ -246,32 +246,45 @@ def update_accumulations(month):
 @pn.depends(filter_params.param.month, filter_params.param.tags)
 def total_amount_display(month, tags):
     filtered_data = df_transactions[(df_transactions['slider_value'] == month) & (df_transactions['tag'].isin(tags))]
-    total_expense = filtered_data[ filtered_data['category'] != 'Investment' ]['amount'].sum()
-    total_invested = filtered_data[ filtered_data['category'] == 'Investment' ]['amount'].sum()
+    total_expense = filtered_data[filtered_data['category'] != 'Investment']['amount'].sum()
+    total_invested = filtered_data[filtered_data['category'] == 'Investment']['amount'].sum()
     total = filtered_data['amount'].sum()
     
     diff = total_expense - total_expenses_per_month
     overspent = diff if total_expense > total_expenses_per_month else 0
 
     income = df_imports[df_imports['slider_value'] == month]['amount'].sum()
-    saved = income - total_expense
-    saved = 0 if saved < 0 else saved
+    saved = max(0, income - total_expense)
 
-    total = f"Total: ${total:,.2f}"
-    total_spent = f"Total Spent: ${total_expense:,.2f}"
-    total_invested_str = f"Total Invested: ${total_invested:,.2f}"
-    
-    budget_overspent = f"Budget Overspent: ${overspent:,.2f}"
-    total_income = f"Total Income: ${income:,.2f}"
-    remaining_text = f"Saved cash this month: ${saved:,.2f}"
+    def with_tooltip(label, value, tooltip):
+        return f'''
+        <div style="font-size: 22px; margin-bottom: 6px; text-align: center;">
+            <span title="{tooltip}" style="cursor: help; font-size: 20px;">❓</span> <b>{label}:</b> ${value:,.2f}
+        </div>
+        '''
 
-    no_interest_text = f"${total_invested:,.2f}/y for 5 years: ${total_invested*5*12:,.2f}" 
-    compounded_text = f"${total_invested:,.2f}/y for 5 years compounded at 10%: ${calculate_compound_interest_with_monthly_addition(total_invested, .1, 5, total_invested):,.2f}"
+    html_content = "".join([
+        with_tooltip("Total", total, "Total amount spent and invested combined"),
+        with_tooltip("Total Spent", total_expense, "Amount spent on expenses this month"),
+        with_tooltip("Budget Overspent", overspent, "Amount over your monthly budget"),
+        "<br>",
+        with_tooltip("Total Income", income, "Total income received this month"),
+        with_tooltip("Total Invested", total_invested, "Amount invested this month"),
+        with_tooltip("Saved cash this month", saved, "Remaining cash after expenses"),
+        with_tooltip(
+            f"{total_invested:,.2f}/y for 5 years (no interest)",
+            total_invested*5*12,
+            "Straightforward savings without compounding"
+        ),
+        with_tooltip(
+            f"{total_invested:,.2f}/y for 5 years at 10% compounded",
+            calculate_compound_interest_with_monthly_addition(total_invested, .1, 5, total_invested),
+            "Compound interest scenario for 5 years at 10% annually"
+        ),
+    ])
 
-    expenses = f"{total}\n{total_spent}\n{budget_overspent}"
-    incomes_invs = f"{total_income}\n{total_invested_str}\n{remaining_text}\n{no_interest_text}\n{compounded_text}"
-    
-    return f"{expenses}\n\n{incomes_invs}"
+    return pn.pane.HTML(html_content, sizing_mode='stretch_width')
+
 
 @pn.depends(filter_params.param.month, filter_params.param.tags)
 def update_budget_usage(month, tags):
@@ -304,8 +317,6 @@ def update_cetes(month):
 
 custom_style_total = {'text-align': 'center', 'font-size': '30px'}
 custom_style_tables = {'text-align': 'center', 'border': '1px solid black', 'box-shadow': '5px 5px 5px #bcbcbc', 'padding': '10px'}
-
-total_amount_markdown = pn.pane.Markdown(total_amount_display, sizing_mode='stretch_width', styles=custom_style_total)
 
 title_data_p = pn.pane.Markdown("## Monthly Transaction Summary")
 title_tag_pipeline = pn.pane.Markdown("## Transactions Grouped by Tag")
@@ -341,7 +352,7 @@ layout_desktop[2:4, 1] = pn.Column(
 )
 
 layout_desktop[0:2, 2] = pn.Column("## Income", update_imports, styles=custom_style_tables)
-layout_desktop[2:4, 2] = total_amount_markdown
+layout_desktop[2:4, 2] = total_amount_display  # ✅ Correct
 
 template = pn.template.FastListTemplate(
     title='Spending Dashboard',
