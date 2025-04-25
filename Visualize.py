@@ -15,6 +15,44 @@ from panel import Spacer
 import yaml
 import sqlite3
 pn.extension('tabulator')
+
+tooltip_css = """
+<style>
+.tooltip {
+  position: relative;
+  display: inline-block;
+  cursor: help;
+  font-size: 20px;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 200px;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px;
+  position: absolute;
+  z-index: 999;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -100px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+  opacity: 1;
+}
+</style>
+"""
+
+pn.extension()
+pn.config.raw_css.append(tooltip_css)
+
+
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
@@ -204,9 +242,13 @@ tag_selection_widget = pn.Column(
 
 PAGE_SIZE = 25
 
-@pn.depends(filter_params.param.month, filter_params.param.tags)
-def update_tag_pipeline(month, tags):
-    filtered_data = df_transactions[(df_transactions['slider_value'] == month) & (df_transactions['tag'].isin(tags))]
+@pn.depends(filter_params.param.month, filter_params.param.year, filter_params.param.tags)
+def update_tag_pipeline(month, year, tags):
+    filtered_data = df_transactions[
+        (df_transactions['slider_value'] == month) &
+        (df_transactions['date'].dt.year == year) &
+        (df_transactions['tag'].isin(tags))
+    ]
     filtered_data = filtered_data.drop(columns=drop_columns, axis=1, errors='ignore')
     filtered_data = filtered_data.groupby('tag')['amount'].sum().reset_index()
     merged_df = pd.merge(filtered_data, budget_df, on='tag', how='inner')
@@ -239,22 +281,18 @@ def update_pipeline(month, year, tags, sort_column, sort_order):
     return pn.widgets.Tabulator(filtered_data, pagination='local', page_size=PAGE_SIZE, sizing_mode='stretch_width', show_index=False, widths=column_widths)
 
 
-@pn.depends(filter_params.param.month)
-def update_imports(month):
-    filtered_data = df_imports[df_imports['slider_value'] == month]
+@pn.depends(filter_params.param.month, filter_params.param.year)
+def update_imports(month, year):
+    filtered_data = df_imports[
+        (df_imports['slider_value'] == month) &
+        (df_imports['date'].dt.year == year)
+    ]
     filtered_data = filtered_data.drop(columns=drop_columns, axis=1, errors='ignore')
     return pn.pane.DataFrame(filtered_data, sizing_mode='stretch_width', index=False)
 
-
-@pn.depends(filter_params.param.month)
-def update_accumulations(month):
-    filtered_data = df_accumulations[df_accumulations['slider_value'] == month]
-    filtered_data = filtered_data.drop(columns=drop_columns, axis=1, errors='ignore')
-    return pn.pane.DataFrame(filtered_data, sizing_mode='stretch_width', index=False)
-
-@pn.depends(filter_params.param.month, filter_params.param.tags)
-def total_amount_display(month, tags):
-    filtered_data = df_transactions[(df_transactions['slider_value'] == month) & (df_transactions['tag'].isin(tags))]
+@pn.depends(filter_params.param.month, filter_params.param.year, filter_params.param.tags)
+def total_amount_display(month, year, tags):
+    filtered_data = df_transactions[(df_transactions['slider_value'] == month) & (df_transactions['date'].dt.year == year) & (df_transactions['tag'].isin(tags))]
     total_expense = filtered_data[filtered_data['category'] != 'Investment']['amount'].sum()
     total_invested = filtered_data[filtered_data['category'] == 'Investment']['amount'].sum()
     total = filtered_data['amount'].sum()
@@ -263,32 +301,43 @@ def total_amount_display(month, tags):
     overspent = diff if total_expense > total_expenses_per_month else 0
 
     income = df_imports[df_imports['slider_value'] == month]['amount'].sum()
-    saved = max(0, income - total_expense)
+    saved = income - total_expense
+    bankdelta = saved
+    saved = max(0, saved)
 
     def with_tooltip(label, value, tooltip):
         return f'''
-        <div style="font-size: 22px; margin-bottom: 6px; text-align: center;">
-            <span title="{tooltip}" style="cursor: help; font-size: 20px;">❓</span> <b>{label}:</b> ${value:,.2f}
+        <div style="font-size: 22px; margin-bottom: 8px; text-align: center;">
+            <span class="tooltip">❓
+                <span class="tooltiptext">{tooltip}</span>
+            </span>
+            <b>{label}:</b> ${value:,.2f}
         </div>
         '''
 
     html_content = "".join([
         with_tooltip("Total", total, "Total de dinero que gastaste en gastos e inversiones"),
         with_tooltip("Total Spent", total_expense, "Total de dinero que gastaste en gastos"),
-        with_tooltip("Budget Overspent", overspent, "Lo que gastaste de mas segun tu budget del mes"),
+        with_tooltip("Budget Overspent", overspent, "Lo que gastaste de mas segun tu budget del mes, incluyendo inversiones"),
         "<br>",
         with_tooltip("Total Income", income, "Total de ingresos"),
         with_tooltip("Total Invested", total_invested, "Total de dinero gastado en inversiones"),
-        with_tooltip("Saved cash this month", saved, "Dinero sobrante que no fue transferido a enversiones y se quedo en la cuenta bancaria"),
+        with_tooltip("Saved cash this month", saved, "Dinero sobrante que no fue transferido a inversiones y se quedo en la cuenta bancaria"),
+        with_tooltip("Remaining in bank", bankdelta, f"Ahora tienes {bankdelta:,.2f} mas o {bankdelta:,.2f} menos en tu cuenta bancaria, si tienes mas, deberias de invertirlos, si tienes menos, tu esquema de gastos/inversiones son insostenibles"),
         with_tooltip(
-            f"{total_invested:,.2f}/y for 5 years (no interest)",
+            f"{total_invested:,.2f}/m for 5 years (no interest)",
             total_invested*5*12,
-            "Straightforward savings without compounding"
+            f"Dinero que tendrias si ahorraras {total_invested:,.2f} cada mes por 5 años"
         ),
         with_tooltip(
-            f"{total_invested:,.2f}/y for 5 years at 10% compounded",
+            f"{total_invested:,.2f}/m for 5 years at 10% compounded",
             calculate_compound_interest_with_monthly_addition(total_invested, .1, 5, total_invested),
-            "Compound interest scenario for 5 years at 10% annually"
+            f"Dinero que tendrias si ahorraras {total_invested:,.2f} cada mes por 5 años invertidos en alguna inversion con tasa de %10"
+        ),
+        with_tooltip(
+            f"{total_invested:,.2f}/m for 5 years at 20% compounded",
+            calculate_compound_interest_with_monthly_addition(total_invested, .2, 5, total_invested),
+            f"Dinero que tendrias si ahorraras {total_invested:,.2f} cada mes por 5 años invertidos en alguna inversion con tasa de %10"
         ),
     ])
 
@@ -320,9 +369,13 @@ def update_budget_usage(month, tags):
     )
     return bar_plot
 
-@pn.depends(filter_params.param.month)  # Example dependency for month; adjust as needed
+@pn.depends(filter_params.param.month)
 def update_cetes(month):
-    query = "SELECT * FROM cetes"
+    padded_month = f"{month:02d}"
+    query = f"""
+        SELECT * FROM cetes
+        WHERE strftime('%m', date) = '{padded_month}'
+    """
     cetes_data = fetch_data(query)
     return pn.pane.DataFrame(cetes_data, sizing_mode='stretch_width', index=False)
 
