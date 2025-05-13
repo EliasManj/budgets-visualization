@@ -349,9 +349,9 @@ def total_amount_display(month, year, tags):
 
 
 
-@pn.depends(filter_params.param.month, filter_params.param.tags)
-def update_budget_usage(month, tags):
-    filtered_data = df_transactions[(df_transactions['slider_value'] == month) & (df_transactions['tag'].isin(tags))]
+@pn.depends(filter_params.param.month, filter_params.param.year, filter_params.param.tags)
+def update_budget_usage(month, year, tags):
+    filtered_data = df_transactions[(df_transactions['slider_value'] == month) & (df_transactions['date'].dt.year == year) & (df_transactions['tag'].isin(tags))]
     spending_summary = filtered_data.groupby('tag')['amount'].sum().reset_index()
 
     merged_data = pd.merge(spending_summary, budget_df, on='tag', how='left')
