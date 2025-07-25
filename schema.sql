@@ -21,10 +21,12 @@ CREATE TABLE budget_accumulations (
     PRIMARY KEY (date, tag)
 );
 
-CREATE TABLE cetes (
+CREATE TABLE IF NOT EXISTS cetes (
+    date TEXT,
     instrumento TEXT,
     invertido REAL,
-    plusminus REAL, 
+    plusminus REAL,
     disp REAL,
-    valuado REAL
-);
+    valuado REAL,
+    PRIMARY KEY (date, instrumento)
+)

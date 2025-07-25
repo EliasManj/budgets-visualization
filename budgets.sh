@@ -67,9 +67,11 @@ source ./venv/bin/activate
 
 # If update flag is set, run the Python import scripts
 if [ "$UPDATE" = true ] || [ "$RESET" = true ] ; then
-    python import_amex.py
-    python import_bbva.py
-    python import_bbva_debit.py
+    python amex.py
+    python bbva.py
+    python bbva_debit.py
+    python banamex.py
+    python cetes.py
 fi
 
 sqlite3 db/database.db < db/modifications.sql

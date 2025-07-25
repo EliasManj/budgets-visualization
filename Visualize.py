@@ -16,6 +16,12 @@ import yaml
 import sqlite3
 pn.extension('tabulator')
 
+# imports data
+from bbva import *
+from amex import *
+from banamex import *
+from cetes import *
+
 tooltip_css = """
 <style>
 .tooltip {
@@ -203,6 +209,8 @@ tags
 tag_check_box = pn.widgets.CheckBoxGroup(name='Tags', options=tags, value=tags)
 select_all_button = pn.widgets.Button(name='Select All', button_type='primary')
 clear_all_button = pn.widgets.Button(name='Clear All', button_type='warning')
+refresh_buton= pn.widgets.Button(name='Refresh Data', button_type='primary')
+
 
 def select_all(event):
     tag_check_box.value = tags  
@@ -210,8 +218,25 @@ def select_all(event):
 def clear_all(event):
     tag_check_box.value = []
 
+def refresh_data(event):
+    refresh_buton.name = "⏳ Loading..."
+    refresh_buton.button_type = "default"
+    refresh_buton.disabled = True
+
+    try:
+        import_bbva_credit()
+        import_bbva_debit()
+        import_amex()
+        import_banamex()
+        import_cetes()
+    finally:
+        refresh_buton.name = "Refresh Data"
+        refresh_buton.button_type = "primary"
+        refresh_buton.disabled = False
+
 select_all_button.on_click(select_all)
 clear_all_button.on_click(clear_all)
+refresh_buton.on_click(refresh_data)
 
 class FilterParams(param.Parameterized):
     year = param.Integer(default=default_year, bounds=(2020, 2030)) 
@@ -233,9 +258,13 @@ sort_column_selector.link(filter_params, value='sort_column')
 sort_order_selector.link(filter_params, value='sort_order')
 
 tag_selection_widget = pn.Column(
-    pn.pane.Markdown("### Filter by Tags"),
     select_all_button, clear_all_button, tag_check_box
 )
+
+trefresh_widget = pn.Column(
+    refresh_buton
+)
+
 
 # In[6]:
 
@@ -300,7 +329,7 @@ def total_amount_display(month, year, tags):
     diff = total_expense - total_expenses_per_month
     overspent = diff if total_expense > total_expenses_per_month else 0
 
-    income = df_imports[df_imports['slider_value'] == month]['amount'].sum()
+    income = df_imports[(df_imports['slider_value'] == month) & (df_imports['date'].dt.year == year)]['amount'].sum()
     saved = income - total_expense
     bankdelta = saved
     saved = max(0, saved)
@@ -351,21 +380,30 @@ def total_amount_display(month, year, tags):
 
 @pn.depends(filter_params.param.month, filter_params.param.year, filter_params.param.tags)
 def update_budget_usage(month, year, tags):
-    filtered_data = df_transactions[(df_transactions['slider_value'] == month) & (df_transactions['date'].dt.year == year) & (df_transactions['tag'].isin(tags))]
+    filtered_data = df_transactions[
+        (df_transactions['slider_value'] == month) & 
+        (df_transactions['date'].dt.year == year) & 
+        (df_transactions['tag'].isin(tags))
+    ]
     spending_summary = filtered_data.groupby('tag')['amount'].sum().reset_index()
 
     merged_data = pd.merge(spending_summary, budget_df, on='tag', how='left')
     merged_data['percentage_used'] = (merged_data['amount'] / merged_data['budget']) * 100
 
+    # Add a column for color: red if >100%, else blue
+    merged_data['color'] = merged_data['percentage_used'].apply(lambda x: 'yellow' if x < 130 and x > 100 else 'red' if x > 100 else 'green')
+
     bar_plot = merged_data.hvplot.bar(
         x='tag',
         y='percentage_used',
+        color='color',  # 👈 use the color column
         ylim=(0, 200),
         height=400,
         width=700,
         xlabel='Tag',
         ylabel='Percentage of Budget Used (%)',
-        title='Budget Usage by Tag'
+        title='Budget Usage by Tag',
+        legend=False
     )
     return bar_plot
 
@@ -438,7 +476,8 @@ template = pn.template.FastListTemplate(
         pn.Spacer(height=20),
         pn.pane.Markdown("### Sort by"),
         sort_column_selector,
-        sort_order_selector
+        sort_order_selector,
+        trefresh_widget
     ],
     main=[layout_desktop],
     theme='dark'
