@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Navigate to the project directory
-cd /home/eliasmanj/code/python/budgets-visualization
-source venv/bin/activate
+cd "$(dirname "$0")"
+source ./venv/bin/activate
 
 # Parse arguments
 UPDATE=false
@@ -62,9 +62,6 @@ if [ "$RESET" = true ] ; then
     sqlite3 db/database.db < schema.sql
 fi
 
-# Activate the Python virtual environment
-source ./venv/bin/activate
-
 # If update flag is set, run the Python import scripts
 if [ "$UPDATE" = true ] || [ "$RESET" = true ] ; then
     python amex.py
@@ -75,12 +72,4 @@ if [ "$UPDATE" = true ] || [ "$RESET" = true ] ; then
 fi
 
 sqlite3 db/database.db < db/modifications.sql
-
-if [ "$ACCUMULATE" = true ] ; then
-    # Run the accumulate_budget.py script with the specified year and month
-    python accumulate_budget.py --year "$YEAR" --month "$MONTH"
-fi
-
-# Convert the Jupyter notebook to a Python script and execute it
-#jupyter nbconvert --to script Visualize.ipynb
 panel serve Visualize.py --show --log-level debug

@@ -145,6 +145,19 @@ def fetch_data(query, db_path='db/database.db'):
     
     return df
 
+def execute_sql(query, db_path='db/database.db'):
+    """
+    Execute a write operation (DELETE, INSERT, UPDATE, etc.) on the SQLite database.
+
+    :param query: SQL query to execute.
+    :param db_path: Path to the SQLite database file.
+    """
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute(query)
+    conn.commit()
+    conn.close()
+
 
 # In[3]:
 
@@ -210,13 +223,27 @@ tag_check_box = pn.widgets.CheckBoxGroup(name='Tags', options=tags, value=tags)
 select_all_button = pn.widgets.Button(name='Select All', button_type='primary')
 clear_all_button = pn.widgets.Button(name='Clear All', button_type='warning')
 refresh_buton= pn.widgets.Button(name='Refresh Data', button_type='primary')
-
+reset_button = pn.widgets.Button(name='Reset Data', button_type='primary')
 
 def select_all(event):
     tag_check_box.value = tags  
 
 def clear_all(event):
     tag_check_box.value = []
+
+def reset_all(event):
+    refresh_buton.name = "⏳ Loading..."
+    refresh_buton.button_type = "default"
+    refresh_buton.disabled = True
+
+    try:
+        execute_sql("DELETE FROM transactions")
+        execute_sql("DELETE FROM imports")
+    finally:
+        refresh_buton.name = "Reset Data"
+        refresh_buton.button_type = "primary"
+        refresh_buton.disabled = False
+
 
 def refresh_data(event):
     refresh_buton.name = "⏳ Loading..."
@@ -237,6 +264,7 @@ def refresh_data(event):
 select_all_button.on_click(select_all)
 clear_all_button.on_click(clear_all)
 refresh_buton.on_click(refresh_data)
+reset_button.on_click(reset_all)
 
 class FilterParams(param.Parameterized):
     year = param.Integer(default=default_year, bounds=(2020, 2030)) 
@@ -262,7 +290,7 @@ tag_selection_widget = pn.Column(
 )
 
 trefresh_widget = pn.Column(
-    refresh_buton
+    refresh_buton, reset_button
 )
 
 
@@ -463,7 +491,7 @@ template = pn.template.FastListTemplate(
     title='Spending Dashboard',
     sidebar=[
         pn.pane.Markdown("# Transactions"),
-        pn.pane.Markdown("### “You’ve learned the lessons well...”"),
+        #pn.pane.Markdown("### “You’ve learned the lessons well...”"),
         pn.pane.PNG(image_path, width=300),
         pn.pane.Markdown("## Settings"),
         pn.pane.Markdown("### Filter by Year"),
