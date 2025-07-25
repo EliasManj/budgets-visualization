@@ -426,14 +426,12 @@ def update_budget_usage(month, year, tags):
         y='percentage_used',
         color='color',  # 👈 use the color column
         ylim=(0, 200),
-        height=400,
-        width=700,
         xlabel='Tag',
         ylabel='Percentage of Budget Used (%)',
         title='Budget Usage by Tag',
         legend=False
-    )
-    return bar_plot
+    ).opts(xrotation=45, height=None, width=None)
+    return pn.pane.HoloViews(bar_plot, sizing_mode='stretch_both', min_height=300)
 
 @pn.depends(filter_params.param.month)
 def update_cetes(month):
@@ -461,31 +459,34 @@ budget_title = pn.pane.Markdown(f"## Budget")
 
 image_path = "/home/eliasmanj/code/python/budgets-visualization/img/image.png"
 
-layout_desktop = pn.GridSpec(sizing_mode='stretch_both')
-layout_desktop[0:3, 0] = pn.Column(title_data_p, update_pipeline)
-layout_desktop[3, 0] = pn.Column(
+layout = pn.GridSpec(sizing_mode='stretch_both')
+layout[0:3, 0] = pn.Column(title_data_p, update_pipeline)
+layout[3, 0] = pn.Column(
     pn.pane.Markdown("## CETES Data", align='center'),
     update_cetes,
     styles={'text-align': 'center', 'border': '1px solid black', 'padding': '10px'},
     sizing_mode='stretch_both'
 )
 
-layout_desktop[0:2, 1] = pn.Column(title_tag_pipeline, update_tag_pipeline, budget_detail, styles=custom_style_tables)
-layout_desktop[2:4, 1] = pn.Column(
-    pn.layout.VSpacer(),  # Spacer to push content down
-    pn.pane.Markdown("## Budget Usage Visualization", align='center'),  # Title aligned to center
-    pn.Row(  # Row for centering the plot
-        pn.layout.HSpacer(),  # Spacer on the left to center horizontally
-        update_budget_usage,  # The plot
-        pn.layout.HSpacer()   # Spacer on the right to center horizontally
+layout[0:2, 1] = pn.Column(title_tag_pipeline, update_tag_pipeline, budget_detail, styles=custom_style_tables)
+layout[2:4, 1] = pn.Column(
+    pn.pane.Markdown("## Budget Usage Visualization", align='center'),
+    pn.Row(
+        pn.Spacer(width=10),  # optional small left spacer
+        pn.Column(
+            update_budget_usage,
+            sizing_mode='stretch_both'
+        ),
+        pn.Spacer(width=10),  # optional small right spacer
+        sizing_mode='stretch_both'
     ),
-    pn.layout.VSpacer(),  # Spacer to push content up
     styles=custom_style_tables,
-    sizing_mode='stretch_both'  # Ensure the entire column expands
+    sizing_mode='stretch_both'
 )
 
-layout_desktop[0:2, 2] = pn.Column("## Income", update_imports, styles=custom_style_tables)
-layout_desktop[2:4, 2] = total_amount_display  # ✅ Correct
+
+layout[0:2, 2] = pn.Column("## Income", update_imports, styles=custom_style_tables)
+layout[2:4, 2] = total_amount_display  
 
 template = pn.template.FastListTemplate(
     title='Spending Dashboard',
@@ -507,7 +508,7 @@ template = pn.template.FastListTemplate(
         sort_order_selector,
         trefresh_widget
     ],
-    main=[layout_desktop],
+    main=[layout],
     theme='dark'
 )
 
