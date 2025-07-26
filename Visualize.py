@@ -232,17 +232,18 @@ def clear_all(event):
     tag_check_box.value = []
 
 def reset_all(event):
-    refresh_buton.name = "⏳ Loading..."
-    refresh_buton.button_type = "default"
-    refresh_buton.disabled = True
+    reset_button.name = "⏳ Loading..."
+    reset_button.button_type = "default"
+    reset_button.disabled = True
 
     try:
         execute_sql("DELETE FROM transactions")
         execute_sql("DELETE FROM imports")
+        execute_sql("DELETE FROM cetes")
     finally:
-        refresh_buton.name = "Reset Data"
-        refresh_buton.button_type = "primary"
-        refresh_buton.disabled = False
+        reset_button.name = "Reset Data"
+        reset_button.button_type = "primary"
+        reset_button.disabled = False
 
 
 def refresh_data(event):
@@ -315,8 +316,7 @@ def update_tag_pipeline(month, year, tags):
         merged_df,
         sizing_mode='stretch_both',
         layout='fit_columns', 
-        show_index=False,
-        height=300  
+        show_index=False
     )
 
 
@@ -370,7 +370,7 @@ def total_amount_display(month, year, tags):
 
     def with_tooltip(label, value, tooltip):
         return f'''
-        <div style="font-size: 1.2em; margin-bottom: 8px; text-align: center;">
+        <div style="font-size: 1.5em; margin-bottom: 8px; text-align: center;">
             <span class="tooltip">❓
                 <span class="tooltiptext">{tooltip}</span>
             </span>
@@ -472,23 +472,31 @@ budget_title = pn.pane.Markdown(f"## Budget")
 
 image_path = "/home/eliasmanj/code/python/budgets-visualization/img/image.png"
 
-layout = pn.GridSpec(sizing_mode='stretch_both')
-layout[0:3, 0] = pn.Column(title_data_p, update_pipeline)
-layout[3, 0] = pn.Column(
-    pn.pane.Markdown("## CETES Data", align='center'),
-    update_cetes,
-    styles={'text-align': 'center', 'border': '1px solid black', 'padding': '10px'},
+tab1 = pn.GridSpec(sizing_mode='stretch_both')
+
+# Left column (0): Monthly Transaction Summary, full height
+tab1[:, 0] = pn.Column(
+    title_data_p,
+    update_pipeline,
     sizing_mode='stretch_both'
 )
 
-layout[0:2, 1] = pn.Column(
+# Right column (1): upper = tag pipeline, lower = income
+tab1[0, 1] = pn.Column(
     title_tag_pipeline,
     update_tag_pipeline,
     styles=custom_style_tables,
-    sizing_mode='stretch_both'  
+    sizing_mode='stretch_both'
+)
+tab1[1, 1] = pn.Column(
+    pn.pane.Markdown("## Income"),
+    update_imports,
+    styles=custom_style_tables,
+    sizing_mode='stretch_both'
 )
 
-layout[2:4, 1] = pn.Column(
+tab2 = pn.GridSpec(sizing_mode='stretch_both')
+tab2[0, 0] = pn.Column(
     pn.pane.Markdown("## Budget Usage Visualization", align='center'),
     pn.Row(
         pn.Spacer(width=10), 
@@ -502,10 +510,13 @@ layout[2:4, 1] = pn.Column(
     styles=custom_style_tables,
     sizing_mode='stretch_both'
 )
-
-
-layout[0:2, 2] = pn.Column("## Income", update_imports, styles=custom_style_tables)
-layout[2:4, 2] = total_amount_display  
+tab2[1, 0] = pn.Column(
+    pn.pane.Markdown("## CETES Data", align='center'),
+    update_cetes,
+    styles={'text-align': 'center', 'border': '1px solid black', 'padding': '10px'},
+    sizing_mode='stretch_both'
+)
+tab2[:, 1] = total_amount_display  
 
 template = pn.template.FastListTemplate(
     title='Spending Dashboard',
@@ -527,7 +538,12 @@ template = pn.template.FastListTemplate(
         sort_order_selector,
         trefresh_widget
     ],
-    main=[layout],
+    main=[
+        pn.Tabs(
+            ("💰 Transactions", tab1),
+            ("📈 Summary & Investments", tab2),
+        )        
+    ],
     theme='dark'
 )
 
