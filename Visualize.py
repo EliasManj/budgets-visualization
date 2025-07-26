@@ -14,6 +14,7 @@ import param
 from panel import Spacer
 import yaml
 import sqlite3
+import os
 pn.extension('tabulator')
 
 # imports data
@@ -470,7 +471,7 @@ budget_inv = f"Investments: ${total_investments_per_month:,.2f}"
 budget_detail = pn.pane.Markdown(f"{budget}    {budget_expenses}    {budget_inv}\n")
 budget_title = pn.pane.Markdown(f"## Budget")
 
-image_path = "/home/eliasmanj/code/python/budgets-visualization/img/image.png"
+image_path = os.path.join(os.path.dirname(__file__), "img", "image.png")
 
 tab1 = pn.GridSpec(sizing_mode='stretch_both')
 
