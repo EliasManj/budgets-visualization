@@ -27,8 +27,9 @@ def import_amex():
         print(f"Processing CSV file: {csv_file}")
         if "2025" in csv_file:
             print()
-        with open(os.path.join(data_dir, csv_file), newline='') as csvfile:
+        with open(os.path.join(data_dir, csv_file), newline='', encoding='utf-8-sig') as csvfile:
             reader = csv.DictReader(csvfile, delimiter=',')
+            print(f"Fieldnames in CSV: {reader.fieldnames}")
             for row in reader:
                 # Parse date from string to Python date object
                 fecha = datetime.strptime(row['Fecha'], '%d %b %Y').date()

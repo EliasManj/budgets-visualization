@@ -311,7 +311,13 @@ def update_tag_pipeline(month, year, tags):
     merged_df = pd.merge(filtered_data, budget_df, on='tag', how='inner')
     desired_order = ['tag', 'category', 'budget', 'amount']
     merged_df = merged_df[desired_order]
-    return pn.pane.DataFrame(merged_df, sizing_mode='stretch_width', index=False)
+    return pn.widgets.Tabulator(
+        merged_df,
+        sizing_mode='stretch_both',
+        layout='fit_columns', 
+        show_index=False,
+        height=300  
+    )
 
 
 @pn.depends(filter_params.param.month, filter_params.param.year, filter_params.param.tags, filter_params.param.sort_column, filter_params.param.sort_order)
@@ -335,7 +341,7 @@ def update_pipeline(month, year, tags, sort_column, sort_order):
         'category': 200
     }
     
-    return pn.widgets.Tabulator(filtered_data, pagination='local', page_size=PAGE_SIZE, sizing_mode='stretch_width', show_index=False, widths=column_widths)
+    return pn.widgets.Tabulator(filtered_data, pagination='local', page_size=PAGE_SIZE, sizing_mode='stretch_both', show_index=False, widths=column_widths)
 
 
 @pn.depends(filter_params.param.month, filter_params.param.year)
@@ -364,7 +370,7 @@ def total_amount_display(month, year, tags):
 
     def with_tooltip(label, value, tooltip):
         return f'''
-        <div style="font-size: 22px; margin-bottom: 8px; text-align: center;">
+        <div style="font-size: 1.2em; margin-bottom: 8px; text-align: center;">
             <span class="tooltip">❓
                 <span class="tooltiptext">{tooltip}</span>
             </span>
@@ -373,6 +379,7 @@ def total_amount_display(month, year, tags):
         '''
 
     html_content = "".join([
+        "",
         with_tooltip("Total", total, "Total de dinero que gastaste en gastos e inversiones"),
         with_tooltip("Total Spent", total_expense, "Total de dinero que gastaste en gastos"),
         with_tooltip("Budget Overspent", overspent, "Lo que gastaste de mas segun tu budget del mes, incluyendo inversiones"),
@@ -441,7 +448,13 @@ def update_cetes(month):
         WHERE strftime('%m', date) = '{padded_month}'
     """
     cetes_data = fetch_data(query)
-    return pn.pane.DataFrame(cetes_data, sizing_mode='stretch_width', index=False)
+    return pn.widgets.Tabulator(
+        cetes_data,
+        sizing_mode='stretch_both',
+        layout='fit_columns',  
+        show_index=False,
+        height=300  
+    )
 
 # In[7]:
 
@@ -468,11 +481,17 @@ layout[3, 0] = pn.Column(
     sizing_mode='stretch_both'
 )
 
-layout[0:2, 1] = pn.Column(title_tag_pipeline, update_tag_pipeline, budget_detail, styles=custom_style_tables)
+layout[0:2, 1] = pn.Column(
+    title_tag_pipeline,
+    update_tag_pipeline,
+    styles=custom_style_tables,
+    sizing_mode='stretch_both'  
+)
+
 layout[2:4, 1] = pn.Column(
     pn.pane.Markdown("## Budget Usage Visualization", align='center'),
     pn.Row(
-        pn.Spacer(width=10),  # optional small left spacer
+        pn.Spacer(width=10), 
         pn.Column(
             update_budget_usage,
             sizing_mode='stretch_both'

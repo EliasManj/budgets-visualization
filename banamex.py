@@ -25,7 +25,7 @@ def import_banamex():
 
     for csv_file in csv_files:
         print(f"Processing CSV file: {csv_file}")
-        with open(os.path.join(data_dir, csv_file), newline='') as csvfile:
+        with open(os.path.join(data_dir, csv_file), newline='', encoding='utf-8-sig') as csvfile:
             reader = csv.DictReader(csvfile, delimiter=',')
             for row in reader:
                 fecha = datetime.strptime(row['Fecha'], '%d %b %Y').date()
