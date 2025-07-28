@@ -347,7 +347,12 @@ def update_imports(month, year):
         (df_imports['date'].dt.year == year)
     ]
     filtered_data = filtered_data.drop(columns=drop_columns, axis=1, errors='ignore')
-    return pn.pane.DataFrame(filtered_data, sizing_mode='stretch_width', index=False)
+    return pn.widgets.Tabulator(
+        filtered_data,
+        sizing_mode='stretch_both',
+        layout='fit_columns', 
+        show_index=False
+    )
 
 @pn.depends(filter_params.param.month, filter_params.param.year, filter_params.param.tags)
 def total_amount_display(month, year, tags):
