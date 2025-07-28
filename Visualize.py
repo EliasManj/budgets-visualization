@@ -15,8 +15,6 @@ from panel import Spacer
 import yaml
 import sqlite3
 import os
-pn.extension('tabulator')
-
 # imports data
 from bbva import *
 from amex import *
@@ -24,39 +22,36 @@ from banamex import *
 from cetes import *
 
 tooltip_css = """
-<style>
 .tooltip {
-  position: relative;
-  display: inline-block;
-  cursor: help;
-  font-size: 20px;
+  position: relative !important;
+  display: inline-block !important;
+  cursor: help !important;
+  font-size: 20px !important;
 }
 
 .tooltip .tooltiptext {
-  visibility: hidden;
-  width: 200px;
-  background-color: #333;
-  color: #fff;
-  text-align: center;
-  border-radius: 6px;
-  padding: 5px;
-  position: absolute;
-  z-index: 999;
-  bottom: 125%;
-  left: 50%;
-  margin-left: -100px;
-  opacity: 0;
-  transition: opacity 0.3s;
+  visibility: hidden !important;
+  width: 200px !important;
+  background-color: #333 !important;
+  color: #fff !important;
+  text-align: center !important;
+  border-radius: 6px !important;
+  padding: 5px !important;
+  position: absolute !important;
+  z-index: 999 !important;
+  bottom: 125% !important;
+  left: 50% !important;
+  margin-left: -100px !important;
+  opacity: 0 !important;
+  transition: opacity 0.3s !important;
 }
 
 .tooltip:hover .tooltiptext {
-  visibility: visible;
-  opacity: 1;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
-</style>
 """
-
-pn.extension()
+pn.extension('tabulator')
 pn.config.raw_css.append(tooltip_css)
 
 
@@ -537,7 +532,7 @@ template = pn.template.FastListTemplate(
         pn.pane.Markdown("### Sort by"),
         sort_column_selector,
         sort_order_selector,
-        trefresh_widget
+        trefresh_widget,
     ],
     main=[
         pn.Tabs(
@@ -545,8 +540,9 @@ template = pn.template.FastListTemplate(
             ("📈 Summary & Investments", tab2),
         )        
     ],
-    theme='dark'
+    theme='dark',
 )
+
 
 
 template.servable()
