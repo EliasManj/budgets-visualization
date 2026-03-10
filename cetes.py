@@ -3,6 +3,12 @@ import re
 from datetime import datetime
 import os
 
+months = {
+    "Ene": "Jan", "Feb": "Feb", "Mar": "Mar", "Abr": "Apr",
+    "May": "May", "Jun": "Jun", "Jul": "Jul", "Ago": "Aug",
+    "Sep": "Sep", "Oct": "Oct", "Nov": "Nov", "Dic": "Dec"
+}
+
 def get_month_year(filename):
     filename = os.path.basename(filename)
     if filename.endswith(".txt"):

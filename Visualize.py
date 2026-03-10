@@ -308,6 +308,23 @@ def update_tag_pipeline(month, year, tags):
     merged_df = pd.merge(filtered_data, budget_df, on='tag', how='inner')
     desired_order = ['tag', 'category', 'budget', 'amount']
     merged_df = merged_df[desired_order]
+    expense_df = merged_df[merged_df['category'] == 'Expense']
+    investment_df = merged_df[merged_df['category'] == 'Investment']
+    expense_total = pd.DataFrame([{
+        'tag': '',
+        'category': 'Total (expense)',
+        'budget': expense_df['budget'].sum(),
+        'amount': expense_df['amount'].sum()
+    }])
+
+    investment_total = pd.DataFrame([{
+        'tag': '',
+        'category': 'Total (investment)',
+        'budget': investment_df['budget'].sum(),
+        'amount': investment_df['amount'].sum()
+    }])
+
+    merged_df = pd.concat([merged_df, expense_total, investment_total], ignore_index=True)
     return pn.widgets.Tabulator(
         merged_df,
         sizing_mode='stretch_both',
