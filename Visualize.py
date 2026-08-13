@@ -251,7 +251,8 @@ def refresh_data(event):
         import_bbva_credit()
         import_bbva_debit()
         import_amex()
-        import_banamex()
+        import_banamex_debit()
+        import_banamex_credit()
         import_cetes()
     finally:
         refresh_buton.name = "Refresh Data"

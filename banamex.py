@@ -16,7 +16,6 @@ def parse_amount(value):
     value = value.replace("$", "").replace(" ", "").replace(",", "")
     return float(value) if value else 0.0
 
-
 def import_banamex_credit():
 
     print("Connecting to SQLite database...")
@@ -48,7 +47,7 @@ def import_banamex_credit():
                         tag = utils.infer_tag(data, descripcion)
                         cursor.execute("""
                             INSERT INTO transactions (date, description, amount, tag, card) 
-                            VALUES (?, ?, ?, ?, 'banamex') 
+                            VALUES (?, ?, ?, ?, 'banamex_credit') 
                             ON CONFLICT (date, description, amount) 
                             DO NOTHING;
                         """, (fecha, descripcion, importe, tag))
@@ -101,12 +100,13 @@ def import_banamex_debit():
                     importe = parse_amount(retiro_str)
                     if importe > 0.0:
                         tag = utils.infer_tag(data, descripcion)
-                        cursor.execute("""
-                            INSERT INTO transactions (date, description, amount, tag, card) 
-                            VALUES (?, ?, ?, ?, 'banamex') 
-                            ON CONFLICT (date, description, amount) 
-                            DO NOTHING;
-                        """, (fecha, descripcion, importe, tag))
+                        if tag.lower() != "ignore":
+                            cursor.execute("""
+                                INSERT INTO transactions (date, description, amount, tag, card) 
+                                VALUES (?, ?, ?, ?, 'banamex_debit') 
+                                ON CONFLICT (date, description, amount) 
+                                DO NOTHING;
+                            """, (fecha, descripcion, importe, tag))
 
     conn.commit()
     print("Changes committed to the database.")

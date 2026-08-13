@@ -66,7 +66,6 @@ fi
 if [ "$UPDATE" = true ] || [ "$RESET" = true ] ; then
     python amex.py
     python bbva.py
-    python bbva_debit.py
     python banamex.py
     python cetes.py
 fi
