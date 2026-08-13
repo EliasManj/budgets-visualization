@@ -2,8 +2,6 @@ import os
 import csv
 import sqlite3
 from datetime import datetime
-import re
-import yaml
 import utils
 
 months = {
@@ -18,9 +16,7 @@ def parse_amount(value):
 
 def import_banamex_credit():
 
-    print("Connecting to SQLite database...")
     conn = sqlite3.connect('db/database.db')
-    print("Connection successful.")
 
     cursor = conn.cursor()
 
@@ -45,25 +41,16 @@ def import_banamex_credit():
                     importe = parse_amount(retiro_str)
                     if importe > 0.0:
                         tag = utils.infer_tag(data, descripcion)
-                        cursor.execute("""
-                            INSERT INTO transactions (date, description, amount, tag, card) 
-                            VALUES (?, ?, ?, ?, 'banamex_credit') 
-                            ON CONFLICT (date, description, amount) 
-                            DO NOTHING;
-                        """, (fecha, descripcion, importe, tag))
+                        utils.insert_transaction(cursor, conn, fecha, descripcion, importe, tag, 'banamex_credit')
 
     conn.commit()
-    print("Changes committed to the database.")
 
     cursor.close()
     conn.close()
-    print("Database connection closed.")
 
 def import_banamex_debit():
 
-    print("Connecting to SQLite database...")
     conn = sqlite3.connect('db/database.db')
-    print("Connection successful.")
 
     cursor = conn.cursor()
 
@@ -88,32 +75,19 @@ def import_banamex_debit():
 
                 if deposito_str:
                     importe = parse_amount(deposito_str)
-                    if importe > 0.0:
-                        cursor.execute("""
-                            INSERT INTO imports (date, amount) 
-                            VALUES (?, ?) 
-                            ON CONFLICT (date, amount) 
-                            DO NOTHING;
-                        """, (fecha, importe))
+                    utils.insert_import(cursor, conn, fecha, importe)
 
                 if retiro_str:
                     importe = parse_amount(retiro_str)
                     if importe > 0.0:
                         tag = utils.infer_tag(data, descripcion)
                         if tag.lower() != "ignore":
-                            cursor.execute("""
-                                INSERT INTO transactions (date, description, amount, tag, card) 
-                                VALUES (?, ?, ?, ?, 'banamex_debit') 
-                                ON CONFLICT (date, description, amount) 
-                                DO NOTHING;
-                            """, (fecha, descripcion, importe, tag))
+                            utils.insert_transaction(cursor, conn, fecha, descripcion, importe, tag, 'banamex_debit')
 
     conn.commit()
-    print("Changes committed to the database.")
 
     cursor.close()
     conn.close()
-    print("Database connection closed.")
 
 if __name__ == "__main__":
     import_banamex_debit()

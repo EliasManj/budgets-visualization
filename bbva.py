@@ -3,6 +3,7 @@ import os
 import sqlite3
 import warnings
 
+
 import pandas as pd
 
 import utils
@@ -16,38 +17,6 @@ DB_PATH = "db/database.db"
 
 def _get_xlsx_files(data_dir: str) -> list[str]:
     return [f for f in os.listdir(data_dir) if f.endswith(".xlsx")]
-
-
-def _insert_transaction(cursor, conn, fecha, descripcion, importe, tag, card):
-    if importe <= 0.0:
-        return
-    cursor.execute(
-        "SELECT COUNT(*) FROM transactions WHERE date = ? AND description = ? AND amount = ?",
-        (fecha, descripcion, importe),
-    )
-    if cursor.fetchone()[0] == 0:
-        cursor.execute(
-            "INSERT INTO transactions (date, description, amount, tag, card) "
-            "VALUES (?, ?, ?, ?, ?) ON CONFLICT (date, description, amount) DO NOTHING;",
-            (fecha, descripcion, importe, tag, card),
-        )
-        conn.commit()
-
-
-def _insert_import(cursor, conn, fecha, importe):
-    if importe <= 0.0:
-        return
-    cursor.execute(
-        "SELECT COUNT(*) FROM imports WHERE date = ? AND amount = ?",
-        (fecha, importe),
-    )
-    if cursor.fetchone()[0] == 0:
-        cursor.execute(
-            "INSERT INTO imports (date, amount) VALUES (?, ?) "
-            "ON CONFLICT (date, amount) DO NOTHING;",
-            (fecha, importe),
-        )
-        conn.commit()
 
 
 def import_bbva_debit():
@@ -92,10 +61,10 @@ def import_bbva_debit():
             )
 
             for _, row in abonos_df.iterrows():
-                _insert_import(cursor, conn, row["date"].date(), row["amount"])
+                utils.insert_import(cursor, conn, row["date"].date(), row["amount"])
 
             for _, row in charges_df.iterrows():
-                _insert_transaction(
+                utils.insert_transaction(
                     cursor, conn,
                     row["date"].date(), row["description"], row["amount"], row["TAG"],
                     "bbva_debit",
@@ -128,7 +97,7 @@ def import_bbva_credit():
             df["TAG"] = df["description"].apply(lambda x: utils.infer_tag(keywords, x))
 
             for _, row in df.iterrows():
-                _insert_transaction(
+                utils.insert_transaction(
                     cursor, conn,
                     row["date"].date(), row["description"], float(row["amount"]), row["TAG"],
                     "bbva_credit",
