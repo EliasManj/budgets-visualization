@@ -1,21 +1,12 @@
 #!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
-import psycopg2
-from psycopg2.extras import RealDictCursor
 import pandas as pd
 import panel as pn
 import hvplot.pandas
 from datetime import datetime
 import param
-from panel import Spacer
 import yaml
 import sqlite3
 import os
-# imports data
 from bbva import *
 from amex import *
 from banamex import *
@@ -54,48 +45,15 @@ tooltip_css = """
 pn.extension('tabulator')
 pn.config.raw_css.append(tooltip_css)
 
-
-pd.set_option('display.max_rows', None)
-pd.set_option('display.max_columns', None)
-pd.set_option('display.width', None)
-pd.set_option('display.max_colwidth', None)
-
 now = datetime.now()
 default_month = now.month     # e.g., 4 for April
 default_year = now.year       # e.g., 2025
 
-#calculate_compound_interest_with_monthly_addition(saved, .1, 1, 5, saved)
 months = {
     'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
     'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
 }
 
-# In[2]:
-
-
-# https://www.nerdwallet.com/calculator/compound-interest-calculator
-# http://www.moneychimp.com/calculator/compound_interest_calculator.htm
-def calculate_compound_interest_with_yearly_addition(P, r, n, t, M):
-    """
-    Calculate compound interest with yearly contributions.
-    
-    :param P: Initial principal amount
-    :param r: Annual interest rate (decimal, so 10% = 0.10)
-    :param n: Number of compounding periods per year (12 for monthly, 1 for annually)
-    :param t: Time in years
-    :param M: Yearly contribution amount
-    :return: Total accumulated amount
-    """
-    # Calculate the compound interest for the principal amount
-    compound_interest = P * (1 + r/n) ** (n*t)
-    
-    # Calculate the compound interest for the monthly additions
-    compound_interest_additions = M * (((1 + r/n) ** (n*t) - 1) / (r/n))
-    
-    # Total accumulated amount
-    total_amount = compound_interest + compound_interest_additions
-    
-    return total_amount
 
 def calculate_compound_interest_with_monthly_addition(P, r, t, M):
     """
@@ -155,9 +113,6 @@ def execute_sql(query, db_path='db/database.db'):
     conn.close()
 
 
-# In[3]:
-
-
 df_transactions = fetch_data("SELECT * FROM transactions")
 df_imports = fetch_data("SELECT * FROM imports")
 df_accumulations = fetch_data("SELECT * FROM budget_accumulations")
@@ -176,10 +131,6 @@ total_investments_per_month = budget_df[ budget_df['category'] != 'Expense' ]['a
 budget_df.columns = ['tag','category','budget']
 
 
-# In[4]:
-
-
-start_date = pd.Timestamp('2024-01-01')
 tags = list(budget_df['tag'])
 sort_direction = ['Ascending', 'Descending']
 drop_columns = ['slider_value']
@@ -208,17 +159,13 @@ sort_columns = list(df_transactions.columns)
 
 df_transactions = pd.merge(df_transactions, budget_df, on='tag', how='left')
 df_transactions.drop(columns=['budget'], inplace=True)
-tags
-
-
-# In[5]:
 
 
 ### Widgets
 tag_check_box = pn.widgets.CheckBoxGroup(name='Tags', options=tags, value=tags)
 select_all_button = pn.widgets.Button(name='Select All', button_type='primary')
 clear_all_button = pn.widgets.Button(name='Clear All', button_type='warning')
-refresh_buton= pn.widgets.Button(name='Refresh Data', button_type='primary')
+refresh_button = pn.widgets.Button(name='Refresh Data', button_type='primary')
 reset_button = pn.widgets.Button(name='Reset Data', button_type='primary')
 
 def select_all(event):
@@ -243,9 +190,9 @@ def reset_all(event):
 
 
 def refresh_data(event):
-    refresh_buton.name = "⏳ Loading..."
-    refresh_buton.button_type = "default"
-    refresh_buton.disabled = True
+    refresh_button.name = "⏳ Loading..."
+    refresh_button.button_type = "default"
+    refresh_button.disabled = True
 
     try:
         import_bbva_credit()
@@ -255,13 +202,13 @@ def refresh_data(event):
         import_banamex_credit()
         import_cetes()
     finally:
-        refresh_buton.name = "Refresh Data"
-        refresh_buton.button_type = "primary"
-        refresh_buton.disabled = False
+        refresh_button.name = "Refresh Data"
+        refresh_button.button_type = "primary"
+        refresh_button.disabled = False
 
 select_all_button.on_click(select_all)
 clear_all_button.on_click(clear_all)
-refresh_buton.on_click(refresh_data)
+refresh_button.on_click(refresh_data)
 reset_button.on_click(reset_all)
 
 class FilterParams(param.Parameterized):
@@ -287,12 +234,9 @@ tag_selection_widget = pn.Column(
     select_all_button, clear_all_button, tag_check_box
 )
 
-trefresh_widget = pn.Column(
-    refresh_buton, reset_button
+refresh_widget = pn.Column(
+    refresh_button, reset_button
 )
-
-
-# In[6]:
 
 
 PAGE_SIZE = 25
@@ -475,10 +419,6 @@ def update_cetes(month):
         height=300  
     )
 
-# In[7]:
-
-
-custom_style_total = {'text-align': 'center', 'font-size': '30px'}
 custom_style_tables = {'text-align': 'center', 'border': '1px solid black', 'box-shadow': '5px 5px 5px #bcbcbc', 'padding': '10px'}
 
 title_data_p = pn.pane.Markdown("## Monthly Transaction Summary")
@@ -555,7 +495,7 @@ template = pn.template.FastListTemplate(
         pn.pane.Markdown("### Sort by"),
         sort_column_selector,
         sort_order_selector,
-        trefresh_widget,
+        refresh_widget,
     ],
     main=[
         pn.Tabs(
@@ -570,10 +510,4 @@ template = pn.template.FastListTemplate(
 
 template.servable()
 # panel serve Visualize.py
-
-
-# In[ ]:
-
-
-
 
