@@ -11,21 +11,19 @@ ACCUMULATE=false
 MONTH=$(date +%m) # Default to current month
 YEAR=$(date +%Y)  # Default to current year
 
-# Check if any process named "panel" is listening on port 5006
-echo "Checking for panel processes on port 5006"
-if sudo lsof -i :5006 | grep -q 'panel'; then
-    echo "Process 'panel' is running on port 5006. Killing the process..."
-    # Get the PID of the process named "panel" listening on port 5006
+# Check if any process is listening on port 8000
+echo "Checking for processes on port 8000"
+if sudo lsof -i :8000 | grep -q 'uvicorn'; then
+    echo "Process 'uvicorn' is running on port 8000. Killing the process..."
     echo "Retrieving PIDs"
-    PIDS=$(sudo lsof -t -i :5006 | xargs)
-    # Kill the process
+    PIDS=$(sudo lsof -t -i :8000 | xargs)
     for PID in $PIDS; do
         echo "Killing process with PID $PID"
         sudo kill -9 $PID
         echo "Killed process with PID $PID"
     done
 else
-    echo "No process named 'panel' is running on port 5006."
+    echo "No process named 'uvicorn' is running on port 8000."
 fi
 
 
@@ -71,4 +69,4 @@ if [ "$UPDATE" = true ] || [ "$RESET" = true ] ; then
 fi
 
 sqlite3 db/database.db < db/modifications.sql
-panel serve Visualize.py --show --log-level debug
+uvicorn api.main:app --host 0.0.0.0 --port 8000

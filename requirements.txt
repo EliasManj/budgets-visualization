@@ -9,3 +9,5 @@ matplotlib
 hvplot
 jupyterlab
 pdfminer.six
+fastapi
+uvicorn[standard]
