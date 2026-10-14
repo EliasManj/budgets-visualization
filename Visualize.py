@@ -211,18 +211,45 @@ clear_all_button.on_click(clear_all)
 refresh_button.on_click(refresh_data)
 reset_button.on_click(reset_all)
 
+all_cards = ['amex', 'bbva_debit', 'bbva_credit', 'banamex_debit', 'banamex_credit']
+
 class FilterParams(param.Parameterized):
-    year = param.Integer(default=default_year, bounds=(2020, 2030)) 
+    year = param.Integer(default=default_year, bounds=(2020, 2030))
     month = param.Integer(default=default_month, bounds=(1, 12))
+    day_range = param.Range(default=(1, 31), bounds=(1, 31))
     tags = param.ListSelector(default=tags)
+    cards = param.ListSelector(default=all_cards)
     sort_column = param.ObjectSelector(default='date', objects=sort_columns)
     sort_order = param.Selector(default='Ascending', objects=sort_direction)
 
 filter_params = FilterParams()
 
+day_range_slider = pn.widgets.IntRangeSlider(
+    name='Day Range',
+    start=1,
+    end=31,
+    value=(1, 31),
+    step=1
+)
+
+card_check_box = pn.widgets.CheckBoxGroup(name='Cards', options=all_cards, value=all_cards)
+card_select_all_button = pn.widgets.Button(name='Select All', button_type='primary')
+card_clear_all_button = pn.widgets.Button(name='Clear All', button_type='warning')
+
+def card_select_all(event):
+    card_check_box.value = all_cards
+
+def card_clear_all(event):
+    card_check_box.value = []
+
+card_select_all_button.on_click(card_select_all)
+card_clear_all_button.on_click(card_clear_all)
+
 month_slider.link(filter_params, value='month')
 year_slider.link(filter_params, value='year')
+day_range_slider.link(filter_params, value='day_range')
 tag_check_box.link(filter_params, value='tags')
+card_check_box.link(filter_params, value='cards')
 
 sort_column_selector = pn.widgets.Select(name='Sort Column', options=sort_columns, value='date')
 sort_order_selector = pn.widgets.RadioBoxGroup(name='Sort Order', options=sort_direction, inline=True)
@@ -241,12 +268,16 @@ refresh_widget = pn.Column(
 
 PAGE_SIZE = 25
 
-@pn.depends(filter_params.param.month, filter_params.param.year, filter_params.param.tags)
-def update_tag_pipeline(month, year, tags):
+@pn.depends(filter_params.param.month, filter_params.param.year, filter_params.param.tags, filter_params.param.cards, filter_params.param.day_range)
+def update_tag_pipeline(month, year, tags, cards, day_range):
+    day_start, day_end = day_range
     filtered_data = df_transactions[
         (df_transactions['slider_value'] == month) &
         (df_transactions['date'].dt.year == year) &
-        (df_transactions['tag'].isin(tags))
+        (df_transactions['tag'].isin(tags)) &
+        (df_transactions['card'].isin(cards)) &
+        (df_transactions['date'].dt.day >= day_start) &
+        (df_transactions['date'].dt.day <= day_end)
     ]
     filtered_data = filtered_data.drop(columns=drop_columns, axis=1, errors='ignore')
     filtered_data = filtered_data.groupby('tag')['amount'].sum().reset_index()
@@ -278,13 +309,16 @@ def update_tag_pipeline(month, year, tags):
     )
 
 
-@pn.depends(filter_params.param.month, filter_params.param.year, filter_params.param.tags, filter_params.param.sort_column, filter_params.param.sort_order)
-def update_pipeline(month, year, tags, sort_column, sort_order):
-    print(f'month {month}, year {year}')
+@pn.depends(filter_params.param.month, filter_params.param.year, filter_params.param.tags, filter_params.param.cards, filter_params.param.sort_column, filter_params.param.sort_order, filter_params.param.day_range)
+def update_pipeline(month, year, tags, cards, sort_column, sort_order, day_range):
+    day_start, day_end = day_range
     filtered_data = df_transactions[
-        (df_transactions['slider_value'] == month) & 
-        (df_transactions['date'].dt.year == year) & 
-        (df_transactions['tag'].isin(tags))
+        (df_transactions['slider_value'] == month) &
+        (df_transactions['date'].dt.year == year) &
+        (df_transactions['tag'].isin(tags)) &
+        (df_transactions['card'].isin(cards)) &
+        (df_transactions['date'].dt.day >= day_start) &
+        (df_transactions['date'].dt.day <= day_end)
     ]
     filtered_data = filtered_data.drop(columns=drop_columns, axis=1, errors='ignore')
     filtered_data = filtered_data.sort_values(by=sort_column, ascending=(sort_order == 'Ascending'))
@@ -302,11 +336,14 @@ def update_pipeline(month, year, tags, sort_column, sort_order):
     return pn.widgets.Tabulator(filtered_data, pagination='local', page_size=PAGE_SIZE, sizing_mode='stretch_both', show_index=False, widths=column_widths)
 
 
-@pn.depends(filter_params.param.month, filter_params.param.year)
-def update_imports(month, year):
+@pn.depends(filter_params.param.month, filter_params.param.year, filter_params.param.day_range)
+def update_imports(month, year, day_range):
+    day_start, day_end = day_range
     filtered_data = df_imports[
         (df_imports['slider_value'] == month) &
-        (df_imports['date'].dt.year == year)
+        (df_imports['date'].dt.year == year) &
+        (df_imports['date'].dt.day >= day_start) &
+        (df_imports['date'].dt.day <= day_end)
     ]
     filtered_data = filtered_data.drop(columns=drop_columns, axis=1, errors='ignore')
     return pn.widgets.Tabulator(
@@ -316,17 +353,30 @@ def update_imports(month, year):
         show_index=False
     )
 
-@pn.depends(filter_params.param.month, filter_params.param.year, filter_params.param.tags)
-def total_amount_display(month, year, tags):
-    filtered_data = df_transactions[(df_transactions['slider_value'] == month) & (df_transactions['date'].dt.year == year) & (df_transactions['tag'].isin(tags))]
+@pn.depends(filter_params.param.month, filter_params.param.year, filter_params.param.tags, filter_params.param.cards, filter_params.param.day_range)
+def total_amount_display(month, year, tags, cards, day_range):
+    day_start, day_end = day_range
+    filtered_data = df_transactions[
+        (df_transactions['slider_value'] == month) &
+        (df_transactions['date'].dt.year == year) &
+        (df_transactions['tag'].isin(tags)) &
+        (df_transactions['card'].isin(cards)) &
+        (df_transactions['date'].dt.day >= day_start) &
+        (df_transactions['date'].dt.day <= day_end)
+    ]
     total_expense = filtered_data[filtered_data['category'] != 'Investment']['amount'].sum()
     total_invested = filtered_data[filtered_data['category'] == 'Investment']['amount'].sum()
     total = filtered_data['amount'].sum()
-    
+
     diff = total_expense - total_expenses_per_month
     overspent = diff if total_expense > total_expenses_per_month else 0
 
-    income = df_imports[(df_imports['slider_value'] == month) & (df_imports['date'].dt.year == year)]['amount'].sum()
+    income = df_imports[
+        (df_imports['slider_value'] == month) &
+        (df_imports['date'].dt.year == year) &
+        (df_imports['date'].dt.day >= day_start) &
+        (df_imports['date'].dt.day <= day_end)
+    ]['amount'].sum()
     saved = income - total_expense
     bankdelta = saved
     saved = max(0, saved)
@@ -376,12 +426,16 @@ def total_amount_display(month, year, tags):
 
 
 
-@pn.depends(filter_params.param.month, filter_params.param.year, filter_params.param.tags)
-def update_budget_usage(month, year, tags):
+@pn.depends(filter_params.param.month, filter_params.param.year, filter_params.param.tags, filter_params.param.cards, filter_params.param.day_range)
+def update_budget_usage(month, year, tags, cards, day_range):
+    day_start, day_end = day_range
     filtered_data = df_transactions[
-        (df_transactions['slider_value'] == month) & 
-        (df_transactions['date'].dt.year == year) & 
-        (df_transactions['tag'].isin(tags))
+        (df_transactions['slider_value'] == month) &
+        (df_transactions['date'].dt.year == year) &
+        (df_transactions['tag'].isin(tags)) &
+        (df_transactions['card'].isin(cards)) &
+        (df_transactions['date'].dt.day >= day_start) &
+        (df_transactions['date'].dt.day <= day_end)
     ]
     spending_summary = filtered_data.groupby('tag')['amount'].sum().reset_index()
 
@@ -403,12 +457,13 @@ def update_budget_usage(month, year, tags):
     ).opts(xrotation=45, height=None, width=None)
     return pn.pane.HoloViews(bar_plot, sizing_mode='stretch_both', min_height=300)
 
-@pn.depends(filter_params.param.month)
-def update_cetes(month):
+@pn.depends(filter_params.param.month, filter_params.param.year)
+def update_cetes(month, year):
     padded_month = f"{month:02d}"
     query = f"""
         SELECT * FROM cetes
         WHERE strftime('%m', date) = '{padded_month}'
+          AND strftime('%Y', date) = '{year}'
     """
     cetes_data = fetch_data(query)
     return pn.widgets.Tabulator(
@@ -488,9 +543,14 @@ template = pn.template.FastListTemplate(
         year_slider,  # Add the year slider here
         pn.pane.Markdown("### Filter by Month"),
         month_slider,
+        pn.pane.Markdown("### Filter by Day Range"),
+        day_range_slider,
         pn.Spacer(height=20),
         pn.pane.Markdown("### Filter by Tags"),
         tag_selection_widget,
+        pn.Spacer(height=20),
+        pn.pane.Markdown("### Filter by Card"),
+        pn.Column(card_select_all_button, card_clear_all_button, card_check_box),
         pn.Spacer(height=20),
         pn.pane.Markdown("### Sort by"),
         sort_column_selector,
