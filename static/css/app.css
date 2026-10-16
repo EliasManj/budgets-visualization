@@ -409,6 +409,22 @@ button, input, select { font: inherit; cursor: pointer; }
 .data-table tbody tr:hover td { background: var(--field-1); }
 .data-table .r { text-align: right; font-variant-numeric: tabular-nums; }
 
+.data-table th[data-sort] {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s;
+}
+.data-table th[data-sort]:hover { color: var(--ink); }
+.data-table th[data-sort]::after {
+  content: ' ⇅';
+  opacity: 0.25;
+  font-size: 0.8em;
+}
+.data-table th[data-sort].sort-asc::after  { content: ' ↑'; opacity: 0.8; }
+.data-table th[data-sort].sort-desc::after { content: ' ↓'; opacity: 0.8; }
+.data-table th[data-sort].sort-asc,
+.data-table th[data-sort].sort-desc { color: var(--ink); }
+
 .empty-cell {
   color: var(--muted) !important;
   text-align: center !important;

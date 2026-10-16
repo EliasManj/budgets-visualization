@@ -130,14 +130,14 @@
         <div class="tx-main">
           <h2 class="section-heading">Transacciones del mes</h2>
           <div class="table-scroll">
-            <table class="data-table">
+            <table id="tx-table" class="data-table">
               <thead>
                 <tr>
-                  <th style="width:96px">Fecha</th>
-                  <th>Descripción</th>
-                  <th class="r" style="width:110px">Monto</th>
-                  <th style="width:110px">Etiqueta</th>
-                  <th style="width:128px">Tarjeta</th>
+                  <th data-sort="date" style="width:96px">Fecha</th>
+                  <th data-sort="description">Descripción</th>
+                  <th data-sort="amount" class="r" style="width:110px">Monto</th>
+                  <th data-sort="tag" style="width:110px">Etiqueta</th>
+                  <th data-sort="card" style="width:128px">Tarjeta</th>
                   <th style="width:100px">Categoría</th>
                 </tr>
               </thead>

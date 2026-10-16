@@ -116,11 +116,21 @@ async function fetchAll() {
 }
 
 // ── Render: transactions ──────────────────────────────────────────
+function updateSortIndicators() {
+  document.querySelectorAll('#tx-table th[data-sort]').forEach(th => {
+    th.classList.remove('sort-asc', 'sort-desc')
+    if (th.dataset.sort === S.sortCol) {
+      th.classList.add(S.sortDir === 'Ascending' ? 'sort-asc' : 'sort-desc')
+    }
+  })
+}
+
 function renderTx() {
   const tbody = document.getElementById('tx-body')
   if (!S.transactions.length) {
     tbody.innerHTML = `<tr><td colspan="6" class="empty-cell">Sin transacciones</td></tr>`
     document.getElementById('pagination').innerHTML = ''
+    updateSortIndicators()
     return
   }
   const start = (S.txPage - 1) * PAGE_SZ
@@ -135,6 +145,7 @@ function renderTx() {
       <td class="muted-cell">${esc(t.category ?? '')}</td>
     </tr>`).join('')
   renderPagination(S.transactions.length)
+  updateSortIndicators()
 }
 
 function renderPagination(total) {
@@ -459,6 +470,25 @@ function initSort() {
   )
 }
 
+function initTableSort() {
+  document.querySelectorAll('#tx-table th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      if (S.sortCol === th.dataset.sort) {
+        S.sortDir = S.sortDir === 'Ascending' ? 'Descending' : 'Ascending'
+      } else {
+        S.sortCol = th.dataset.sort
+        S.sortDir = 'Ascending'
+      }
+      const colSelect = document.getElementById('sort-col')
+      if (colSelect) colSelect.value = S.sortCol
+      document.querySelectorAll('input[name="sort-order"]').forEach(r => {
+        r.checked = r.value === S.sortDir
+      })
+      debounce()
+    })
+  })
+}
+
 // ── Tabs ──────────────────────────────────────────────────────────
 function initTabs() {
   document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -534,7 +564,7 @@ async function init() {
   try {
     await loadBudgets()
     initMonthGrid(); initYear(); initDayRange()
-    initTags(); initCards(); initSort()
+    initTags(); initCards(); initSort(); initTableSort()
     initTabs(); initActions(); initReveal()
     await fetchAll()
     initEntrances()
