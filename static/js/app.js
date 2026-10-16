@@ -21,6 +21,8 @@ const S = {
   cards:    [...ALL_CARDS],
   sortCol:  'date',
   sortDir:  'Ascending',
+  tagSortCol: null,
+  tagSortDir: 'Ascending',
   activeTab:'tx',
   // data
   transactions: [],
@@ -176,12 +178,39 @@ function renderPagination(total) {
 }
 
 // ── Render: by-tag ────────────────────────────────────────────────
+function updateTagSortIndicators() {
+  document.querySelectorAll('#tag-table th[data-sort]').forEach(th => {
+    th.classList.remove('sort-asc', 'sort-desc')
+    if (th.dataset.sort === S.tagSortCol) {
+      th.classList.add(S.tagSortDir === 'Ascending' ? 'sort-asc' : 'sort-desc')
+    }
+  })
+}
+
 function renderByTag() {
   const tbody = document.getElementById('tag-body')
   if (!S.byTag.length) {
-    tbody.innerHTML = `<tr><td colspan="4" class="empty-cell">Sin datos</td></tr>`; return
+    tbody.innerHTML = `<tr><td colspan="4" class="empty-cell">Sin datos</td></tr>`
+    updateTagSortIndicators()
+    return
   }
-  tbody.innerHTML = S.byTag.map(row => {
+
+  let rows = [...S.byTag]
+  if (S.tagSortCol) {
+    const col = S.tagSortCol
+    const asc = S.tagSortDir === 'Ascending'
+    const totals = rows.filter(r => String(r.category ?? '').startsWith('Total'))
+    const rest   = rows.filter(r => !String(r.category ?? '').startsWith('Total'))
+    rest.sort((a, b) => {
+      const av = a[col] ?? '', bv = b[col] ?? ''
+      return typeof av === 'number'
+        ? asc ? av - bv : bv - av
+        : asc ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av))
+    })
+    rows = [...rest, ...totals]
+  }
+
+  tbody.innerHTML = rows.map(row => {
     const isTotal = String(row.category ?? '').startsWith('Total')
     const pct     = row.budget > 0 ? (row.amount / row.budget) * 100 : 0
     const cls     = isTotal ? 'row-total' : pct >= 130 ? 'row-over' : pct > 100 ? 'row-warn' : ''
@@ -192,6 +221,7 @@ function renderByTag() {
       <td class="r">${fmt(row.amount ?? 0)}</td>
     </tr>`
   }).join('')
+  updateTagSortIndicators()
 }
 
 // ── Render: imports ───────────────────────────────────────────────
@@ -489,7 +519,19 @@ function initTableSort() {
   })
 }
 
-// ── Tabs ──────────────────────────────────────────────────────────
+function initTagTableSort() {
+  document.querySelectorAll('#tag-table th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      if (S.tagSortCol === th.dataset.sort) {
+        S.tagSortDir = S.tagSortDir === 'Ascending' ? 'Descending' : 'Ascending'
+      } else {
+        S.tagSortCol = th.dataset.sort
+        S.tagSortDir = 'Ascending'
+      }
+      renderByTag()
+    })
+  })
+}
 function initTabs() {
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -564,7 +606,7 @@ async function init() {
   try {
     await loadBudgets()
     initMonthGrid(); initYear(); initDayRange()
-    initTags(); initCards(); initSort(); initTableSort()
+    initTags(); initCards(); initSort(); initTableSort(); initTagTableSort()
     initTabs(); initActions(); initReveal()
     await fetchAll()
     initEntrances()
