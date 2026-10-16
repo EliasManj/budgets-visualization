@@ -5,49 +5,49 @@
 'use strict'
 
 // ── Constants ─────────────────────────────────────────────────────
-const MONTHS   = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
-const ALL_CARDS = ['amex','bbva_debit','bbva_credit','banamex_debit','banamex_credit']
+const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+const ALL_CARDS = ['amex', 'bbva_debit', 'bbva_credit', 'banamex_debit', 'banamex_credit']
 const BAR_MAX_PCT = 200   // matches original ylim(0, 200)
-const PAGE_SZ     = 15
+const PAGE_SZ = 20
 
 // ── State ─────────────────────────────────────────────────────────
 const S = {
-  year:     new Date().getFullYear(),
-  month:    new Date().getMonth() + 1,
+  year: new Date().getFullYear(),
+  month: new Date().getMonth() + 1,
   dayStart: 1,
-  dayEnd:   31,
-  allTags:  [],
-  selTags:  [],
-  cards:    [...ALL_CARDS],
-  sortCol:  'date',
-  sortDir:  'Ascending',
+  dayEnd: 31,
+  allTags: [],
+  selTags: [],
+  cards: [...ALL_CARDS],
+  sortCol: 'date',
+  sortDir: 'Ascending',
   tagSortCol: null,
   tagSortDir: 'Ascending',
-  activeTab:'tx',
+  activeTab: 'tx',
   // data
   transactions: [],
-  byTag:        [],
-  imports:      [],
-  summary:      null,
-  prevSummary:  null,
-  budgetUsage:  [],
-  cetes:        [],
+  byTag: [],
+  imports: [],
+  summary: null,
+  prevSummary: null,
+  budgetUsage: [],
+  cetes: [],
   // ui
-  txPage:   1,
-  loading:  false,
+  txPage: 1,
+  loading: false,
 }
 
 // ── Formatting ────────────────────────────────────────────────────
-const _fmtFull  = new Intl.NumberFormat('es-MX', { style:'currency', currency:'MXN', minimumFractionDigits:0, maximumFractionDigits:2 })
-const _fmtShort = new Intl.NumberFormat('es-MX', { style:'currency', currency:'MXN', minimumFractionDigits:0, maximumFractionDigits:0 })
+const _fmtFull = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0, maximumFractionDigits: 2 })
+const _fmtShort = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0, maximumFractionDigits: 0 })
 
-const fmt      = n => (n == null || isNaN(n)) ? '—' : _fmtFull.format(n)
+const fmt = n => (n == null || isNaN(n)) ? '—' : _fmtFull.format(n)
 const fmtShort = n => (n == null || isNaN(n)) ? '—' : _fmtShort.format(n)
 
 function esc(s) {
   return String(s ?? '')
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
 // ── URL params ────────────────────────────────────────────────────
@@ -83,9 +83,9 @@ async function fetchAll() {
     S.transactions = []; S.byTag = []; S.imports = []
     S.prevSummary = S.summary
     S.summary = {
-      total:0, total_expense:0, budget_overspent:0,
-      total_income:0, total_invested:0, saved_cash:0, remaining_in_bank:0,
-      projections:{ '5yr_no_interest':0, '5yr_10pct_compound':0, '5yr_20pct_compound':0 }
+      total: 0, total_expense: 0, budget_overspent: 0,
+      total_income: 0, total_invested: 0, saved_cash: 0, remaining_in_bank: 0,
+      projections: { '5yr_no_interest': 0, '5yr_10pct_compound': 0, '5yr_20pct_compound': 0 }
     }
     S.budgetUsage = []; S.txPage = 1
     renderAll(); return
@@ -94,7 +94,7 @@ async function fetchAll() {
   S.loading = true
   setLoading(true)
   try {
-    const p  = buildParams()
+    const p = buildParams()
     const cp = new URLSearchParams({ month: S.month, year: S.year })
     const [tx, byTag, imp, sum, usage, cetes] = await Promise.all([
       apiFetch(`/api/transactions?${p}`),
@@ -104,12 +104,12 @@ async function fetchAll() {
       apiFetch(`/api/budget-usage?${p}`),
       apiFetch(`/api/cetes?${cp}`),
     ])
-    S.transactions = tx;  S.byTag  = byTag;  S.imports = imp
-    S.prevSummary  = S.summary;  S.summary = sum
-    S.budgetUsage  = usage;  S.cetes = cetes
+    S.transactions = tx; S.byTag = byTag; S.imports = imp
+    S.prevSummary = S.summary; S.summary = sum
+    S.budgetUsage = usage; S.cetes = cetes
     S.txPage = 1
     renderAll()
-  } catch(e) {
+  } catch (e) {
     console.error(e)
     showError('Error al conectar con la API. Verifica que el servidor esté corriendo en :8000.')
   } finally {
@@ -136,7 +136,7 @@ function renderTx() {
     return
   }
   const start = (S.txPage - 1) * PAGE_SZ
-  const page  = S.transactions.slice(start, start + PAGE_SZ)
+  const page = S.transactions.slice(start, start + PAGE_SZ)
   tbody.innerHTML = page.map(t => `
     <tr>
       <td>${esc(t.date)}</td>
@@ -152,24 +152,24 @@ function renderTx() {
 
 function renderPagination(total) {
   const pages = Math.ceil(total / PAGE_SZ)
-  const el    = document.getElementById('pagination')
+  const el = document.getElementById('pagination')
   if (pages <= 1) { el.innerHTML = ''; return }
 
   const from = (S.txPage - 1) * PAGE_SZ + 1
-  const to   = Math.min(S.txPage * PAGE_SZ, total)
+  const to = Math.min(S.txPage * PAGE_SZ, total)
 
   let btns = ''
-  if (S.txPage > 1) btns += `<button class="btn-page" data-p="${S.txPage-1}">←</button>`
+  if (S.txPage > 1) btns += `<button class="btn-page" data-p="${S.txPage - 1}">←</button>`
   let prev = 0
   for (let i = 1; i <= pages; i++) {
     if (i !== 1 && i !== pages && Math.abs(i - S.txPage) > 2) {
       if (prev !== 0) { btns += `<span class="page-ellipsis">…</span>`; prev = 0 }
       continue
     }
-    btns += `<button class="btn-page${i===S.txPage?' active':''}" data-p="${i}">${i}</button>`
+    btns += `<button class="btn-page${i === S.txPage ? ' active' : ''}" data-p="${i}">${i}</button>`
     prev = i
   }
-  if (S.txPage < pages) btns += `<button class="btn-page" data-p="${S.txPage+1}">→</button>`
+  if (S.txPage < pages) btns += `<button class="btn-page" data-p="${S.txPage + 1}">→</button>`
 
   el.innerHTML = `<span class="page-info">${from}–${to} de ${total}</span><div class="page-btns">${btns}</div>`
   el.querySelectorAll('.btn-page').forEach(b =>
@@ -200,7 +200,7 @@ function renderByTag() {
     const col = S.tagSortCol
     const asc = S.tagSortDir === 'Ascending'
     const totals = rows.filter(r => String(r.category ?? '').startsWith('Total'))
-    const rest   = rows.filter(r => !String(r.category ?? '').startsWith('Total'))
+    const rest = rows.filter(r => !String(r.category ?? '').startsWith('Total'))
     rest.sort((a, b) => {
       const av = a[col] ?? '', bv = b[col] ?? ''
       return typeof av === 'number'
@@ -212,8 +212,8 @@ function renderByTag() {
 
   tbody.innerHTML = rows.map(row => {
     const isTotal = String(row.category ?? '').startsWith('Total')
-    const pct     = row.budget > 0 ? (row.amount / row.budget) * 100 : 0
-    const cls     = isTotal ? 'row-total' : pct >= 130 ? 'row-over' : pct > 100 ? 'row-warn' : ''
+    const pct = row.budget > 0 ? (row.amount / row.budget) * 100 : 0
+    const cls = isTotal ? 'row-total' : pct >= 130 ? 'row-over' : pct > 100 ? 'row-warn' : ''
     return `<tr class="${cls}">
       <td>${esc(row.tag || '—')}</td>
       <td class="muted-cell">${esc(row.category)}</td>
@@ -237,10 +237,10 @@ function renderImports() {
 
 // ── Render: budget bars ───────────────────────────────────────────
 function renderBars() {
-  const chart   = document.getElementById('bars-chart')
+  const chart = document.getElementById('bars-chart')
   const totalEl = document.getElementById('bars-total')
 
-  const total     = S.summary?.total_expense ?? 0
+  const total = S.summary?.total_expense ?? 0
   const prevTotal = S.prevSummary?.total_expense ?? total
   animateCounter(totalEl, prevTotal, total, 900, fmtShort)
 
@@ -249,7 +249,7 @@ function renderBars() {
   }
 
   // Top 3 by pct get visible labels
-  const sorted    = [...S.budgetUsage].sort((a, b) => b.percentage_used - a.percentage_used)
+  const sorted = [...S.budgetUsage].sort((a, b) => b.percentage_used - a.percentage_used)
   const showLabel = new Set(sorted.slice(0, 3).map(u => u.tag))
 
   chart.innerHTML = S.budgetUsage.map((item, i) => {
@@ -274,7 +274,7 @@ function applyBarHeights() {
   const available = Math.max(chart.clientHeight - 28 - 4, 80)  // minus bar-name + gap
   chart.querySelectorAll('.bar-col').forEach(col => {
     const pct = parseFloat(col.dataset.raw)
-    const h   = Math.min(Math.max((pct / BAR_MAX_PCT) * available, 2), available)
+    const h = Math.min(Math.max((pct / BAR_MAX_PCT) * available, 2), available)
     const bar = col.querySelector('.bar')
     if (bar) bar.style.height = `${h}px`
   })
@@ -295,28 +295,32 @@ function replayBarAnimation() {
 // ── Render: metrics ───────────────────────────────────────────────
 function renderMetrics() {
   const panel = document.getElementById('metrics-panel')
-  const s     = S.summary
+  const s = S.summary
   if (!s) { panel.innerHTML = ''; return }
-  const prev  = S.prevSummary
+  const prev = S.prevSummary
 
   const cards = [
-    { lbl:'Total gastado',      val:s.total_expense,      prev:prev?.total_expense },
-    { lbl:'Exceso presupuesto', val:s.budget_overspent,   prev:prev?.budget_overspent,
-      warn: s.budget_overspent > 0 },
-    { lbl:'Ingresos del mes',   val:s.total_income,       prev:prev?.total_income },
-    { lbl:'Invertido',          val:s.total_invested,     prev:prev?.total_invested },
-    { lbl:'Ahorro en banco',    val:s.saved_cash,         prev:prev?.saved_cash },
-    { lbl:'Delta bancario',     val:s.remaining_in_bank,  prev:prev?.remaining_in_bank,
+    { lbl: 'Total gastado', val: s.total_expense, prev: prev?.total_expense },
+    {
+      lbl: 'Exceso presupuesto', val: s.budget_overspent, prev: prev?.budget_overspent,
+      warn: s.budget_overspent > 0
+    },
+    { lbl: 'Ingresos del mes', val: s.total_income, prev: prev?.total_income },
+    { lbl: 'Invertido', val: s.total_invested, prev: prev?.total_invested },
+    { lbl: 'Ahorro en banco', val: s.saved_cash, prev: prev?.saved_cash },
+    {
+      lbl: 'Delta bancario', val: s.remaining_in_bank, prev: prev?.remaining_in_bank,
       note: s.remaining_in_bank >= 0 ? 'superávit' : 'déficit',
       surplus: s.remaining_in_bank >= 0,
-      deficit:  s.remaining_in_bank < 0 },
+      deficit: s.remaining_in_bank < 0
+    },
   ]
 
   const p = s.projections
   panel.innerHTML = `
     <div class="metrics-grid">
       ${cards.map(c => `
-        <div class="metric-card${c.warn?' is-warn':''}${c.surplus?' is-surplus':''}${c.deficit?' is-deficit':''}">
+        <div class="metric-card${c.warn ? ' is-warn' : ''}${c.surplus ? ' is-surplus' : ''}${c.deficit ? ' is-deficit' : ''}">
           <span class="metric-val" data-from="${c.prev ?? c.val}" data-to="${c.val}">${fmt(c.val)}</span>
           <span class="metric-lbl">${c.lbl}</span>
           ${c.note ? `<span class="metric-note">${c.note}</span>` : ''}
@@ -342,7 +346,7 @@ function renderMetrics() {
 
   panel.querySelectorAll('.metric-val').forEach(el => {
     const from = parseFloat(el.dataset.from) || 0
-    const to   = parseFloat(el.dataset.to)   || 0
+    const to = parseFloat(el.dataset.to) || 0
     if (from !== to) animateCounter(el, from, to, 700, fmt)
   })
 }
@@ -368,14 +372,14 @@ function renderCetes() {
 function renderAll() {
   renderTx(); renderByTag(); renderImports()
   renderBars(); renderMetrics(); renderCetes()
-  document.getElementById('header-period').textContent = `${MONTHS[S.month-1]} ${S.year}`
+  document.getElementById('header-period').textContent = `${MONTHS[S.month - 1]} ${S.year}`
 }
 
 // ── Counter animation ─────────────────────────────────────────────
 function animateCounter(el, from, to, ms, formatter) {
   const start = performance.now()
-  const tick  = now => {
-    const t    = Math.min((now - start) / ms, 1)
+  const tick = now => {
+    const t = Math.min((now - start) / ms, 1)
     const ease = 1 - Math.pow(1 - t, 3)
     el.textContent = formatter(from + (to - from) * ease)
     if (t < 1) requestAnimationFrame(tick)
@@ -400,8 +404,8 @@ function showError(msg) {
 function initMonthGrid() {
   const grid = document.getElementById('month-grid')
   grid.innerHTML = MONTHS.map((m, i) =>
-    `<button class="month-btn${S.month===i+1?' is-active':''}"
-             data-m="${i+1}" type="button" aria-pressed="${S.month===i+1}">${m}</button>`
+    `<button class="month-btn${S.month === i + 1 ? ' is-active' : ''}"
+             data-m="${i + 1}" type="button" aria-pressed="${S.month === i + 1}">${m}</button>`
   ).join('')
 
   grid.addEventListener('click', e => {
@@ -563,11 +567,11 @@ function initTabs() {
 // ── Action buttons ────────────────────────────────────────────────
 function initActions() {
   const refresh = document.getElementById('btn-refresh')
-  const reset   = document.getElementById('btn-reset')
+  const reset = document.getElementById('btn-reset')
 
   refresh.addEventListener('click', async () => {
     refresh.disabled = true; refresh.textContent = 'Actualizando…'
-    try { await fetch('/api/refresh', { method:'POST' }); await fetchAll() }
+    try { await fetch('/api/refresh', { method: 'POST' }); await fetchAll() }
     catch { showError('Error al actualizar datos') }
     finally { refresh.disabled = false; refresh.textContent = 'Actualizar' }
   })
@@ -575,7 +579,7 @@ function initActions() {
   reset.addEventListener('click', async () => {
     if (!confirm('¿Eliminar todos los datos de la base de datos?')) return
     reset.disabled = true; reset.textContent = 'Reseteando…'
-    try { await fetch('/api/reset', { method:'POST' }); await fetchAll() }
+    try { await fetch('/api/reset', { method: 'POST' }); await fetchAll() }
     catch { showError('Error al resetear datos') }
     finally { reset.disabled = false; reset.textContent = 'Resetear' }
   })
@@ -611,7 +615,7 @@ async function init() {
     initTabs(); initActions(); initReveal()
     await fetchAll()
     initEntrances()
-  } catch(e) {
+  } catch (e) {
     console.error('Init error:', e)
     showError('Error al inicializar. Verifica que el servidor API esté corriendo.')
   }
