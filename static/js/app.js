@@ -8,7 +8,7 @@
 const MONTHS   = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 const ALL_CARDS = ['amex','bbva_debit','bbva_credit','banamex_debit','banamex_credit']
 const BAR_MAX_PCT = 200   // matches original ylim(0, 200)
-const PAGE_SZ     = 25
+const PAGE_SZ     = 15
 
 // ── State ─────────────────────────────────────────────────────────
 const S = {
