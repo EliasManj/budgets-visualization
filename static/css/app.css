@@ -784,23 +784,30 @@ select {
 }
 
 .bar-pct {
-  font-size: var(--t-tiny);
-  /* inside data-ui fragment */
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
+  position: absolute;
+  top: 5px;
+  left: 0;
+  right: 0;
   text-align: center;
+  font-size: var(--t-tiny);
+  color: rgba(255,255,255,0.9);
+  font-variant-numeric: tabular-nums;
   line-height: 1;
-  flex-shrink: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  white-space: nowrap;
 }
 
-.bar-pct.hidden {
-  visibility: hidden;
-}
+.bar-over .bar-pct { color: rgba(13,6,11,0.85); }
+
+.bar-col:hover .bar-pct { opacity: 1; }
 
 .bar {
   width: 100%;
   height: 0;
   flex-shrink: 0;
+  position: relative;
   transition: height var(--slow) var(--ease-out);
   transition-delay: var(--bar-delay, 0ms);
 }

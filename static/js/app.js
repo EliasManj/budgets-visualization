@@ -257,8 +257,9 @@ function renderBars() {
     const cls = pct >= 130 ? 'bar-over' : pct > 100 ? 'bar-warn' : 'bar-ok'
     return `
       <div class="bar-col" data-raw="${pct.toFixed(2)}">
-        <span class="bar-pct${showLabel.has(item.tag) ? '' : ' hidden'}">${pct.toFixed(0)}%</span>
-        <div class="bar ${cls}" style="--bar-delay:${i * 35}ms"></div>
+        <div class="bar ${cls}" style="--bar-delay:${i * 35}ms">
+          <span class="bar-pct">${pct.toFixed(0)}%</span>
+        </div>
         <span class="bar-name">${esc(item.tag)}</span>
       </div>`
   }).join('')
@@ -273,7 +274,7 @@ function applyBarHeights() {
   const available = Math.max(chart.clientHeight - 28 - 4, 80)  // minus bar-name + gap
   chart.querySelectorAll('.bar-col').forEach(col => {
     const pct = parseFloat(col.dataset.raw)
-    const h   = Math.max((pct / BAR_MAX_PCT) * available, 2)
+    const h   = Math.min(Math.max((pct / BAR_MAX_PCT) * available, 2), available)
     const bar = col.querySelector('.bar')
     if (bar) bar.style.height = `${h}px`
   })
